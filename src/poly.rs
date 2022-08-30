@@ -14,15 +14,18 @@ impl Poly {
         Poly { coeffs: [0; 256] }
     }
 
-    pub fn point_wise_mul(&mut self, b: Poly) -> () {
+
+    pub fn point_wise_mul(&mut self, b: &Poly) -> Poly {
         let mut i: usize = 0;
+        let mut c: Poly = Poly::new();
         loop {
-            self.coeffs[i] = montgomery_reduce(self.coeffs[i] as i64 * b.coeffs[i] as i64); // mont(a, b) = abR^{-1}
+            c.coeffs[i] = montgomery_reduce(self.coeffs[i] as i64 * b.coeffs[i] as i64); // mont(a, b) = abR^{-1}
             i += 1;
             if i == 256 {
                 break;
             }
         }
+        c
     }
 
     pub fn add(&self, b: &Poly) -> Poly {
@@ -53,6 +56,7 @@ impl Poly {
 }
 
 impl Poly {
+    // perform forward ntt
     pub fn ntt(&mut self) -> () {
         let mut k: usize = 0;
         let mut len: usize = 128;
@@ -81,9 +85,10 @@ impl Poly {
             if len == 0 {
                 break;
             }
-        }
+        } 
     }
 
+    // perform inverse ntt
     pub fn intt(&mut self) -> () {
         let mut k: usize = 255;
         let mut len: usize = 1;
@@ -150,7 +155,7 @@ mod tests {
         let mut b: Poly = Poly { coeffs: [11; 256] };
         a.ntt();
         b.ntt();
-        a.point_wise_mul(b);
+        a = a.point_wise_mul(&b);
         a.intt();
 
         let c: Poly = Poly { coeffs: [11; 256] };

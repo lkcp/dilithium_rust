@@ -2,6 +2,7 @@ pub mod poly;
 pub mod reduce;
 pub mod params;
 pub mod back;
+mod polyvec;
 
 use poly::Poly;
 
@@ -11,7 +12,7 @@ fn main() {
     b.coeffs[0] = 1;
     a.ntt();
     b.ntt();
-    a.point_wise_mul(b);
+    a.point_wise_mul(&b);
     a.intt();
     print!("{:?}", a.coeffs);
 }
