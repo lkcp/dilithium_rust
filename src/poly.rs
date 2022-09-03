@@ -5,6 +5,7 @@ static ZETAS: [i32; 255] = [25847, -2608894, -518909, 237124, -777960, -876248, 
 static Q: i32 = 8380417;
 const F: i32 = 41978; // mont^2 /256
 
+#[derive(Debug, Copy, Clone)]
 pub struct Poly {
     pub coeffs: [i32; 256],
 }

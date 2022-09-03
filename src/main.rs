@@ -3,6 +3,8 @@ pub mod reduce;
 pub mod params;
 pub mod back;
 mod polyvec;
+mod sample;
+mod sign;
 
 use poly::Poly;
 

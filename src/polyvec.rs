@@ -1,72 +1,69 @@
 
-mod polyvec {
+pub mod polyvec {
     use crate::poly::Poly;
 
     // a struct consists sevaral polynomials
+    #[derive(Debug)]
     pub struct PolyVec {
-        pub poly: Vec<Poly>,
+        pub vec: Vec<Poly>,
         pub len: usize,
     }
 
     impl PolyVec {
         pub fn new(len: usize) -> PolyVec {
-            let mut poly = Vec::new();
+            let mut vec = Vec::new();
             for _ in 0..len {
-                poly.push(Poly::new());
+                vec.push(Poly::new());
             }
-            PolyVec { poly, len }
+            PolyVec { vec, len }
         }
 
         pub fn get(&self, i: usize) -> &Poly {
-            &self.poly[i]
+            &self.vec[i]
         }
 
         pub fn get_mut(&mut self, i: usize) -> &mut Poly {
-            &mut self.poly[i]
+            &mut self.vec[i]
         }
 
         pub fn set(&mut self, i: usize, poly: Poly) {
-            self.poly[i] = poly;
+            self.vec[i] = poly;
         }
 
         pub fn add(&mut self, i: usize, poly: &Poly) {
-            self.poly[i] = self.poly[i].add(poly);
+            self.vec[i] = self.vec[i].add(poly);
         }
 
         pub fn sub(&mut self, i: usize, poly: &Poly) {
-            self.poly[i] = self.poly[i].sub(poly);
+            self.vec[i] = self.vec[i].sub(poly);
         }
 
         pub fn ntt(&mut self) {
             for i in 0..self.len {
-                self.poly[i].ntt();
+                self.vec[i].ntt();
             }
         }
 
         pub fn  intt(&mut self) {
             for i in 0..self.len {
-                self.poly[i].intt();
+                self.vec[i].intt();
             }
         }
 
-        pub fn pointwise_acc(&mut self, b: &PolyVec) {
+        pub fn pointwise_acc(&mut self, b: &PolyVec) -> Poly {
             for i in 0..self.len {
-                self.poly[i] = self.poly[i].point_wise_mul(&b.poly[i]);
+                self.vec[i] = self.vec[i].point_wise_mul(&b.vec[i]);
                 if i > 0 {
-                    self.poly[0] = self.poly[0].add(&self.poly[i]);
+                    self.vec[0] = self.vec[0].add(&self.vec[i]);
                 }
             }
+            self.vec[0]
         }
 
         pub fn pointwise_acc_invmontgomery(&mut self, b: &PolyVec) {
-            for i in 0..self.len {
-                self.poly[i] = self.poly[i].point_wise_mul(&b.poly[i]);
-                if i > 0 {
-                    self.poly[0] = self.poly[0].add(&self.poly[i]);
-                }
-            }
-            self.poly[0].intt();
-            &self.poly[0];
+            self.pointwise_acc(b);
+            let _ = self.vec[0].intt();
+            self.vec[0];
         }
     }
 
