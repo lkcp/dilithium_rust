@@ -172,5 +172,14 @@ mod tests {
         }
         assert_eq!(a.coeffs, e.coeffs);
     }
+
+    // test for Poly::poly_add_test()
+    #[test]
+    fn poly_add_test_2() {
+        let a : Poly = Poly { coeffs: [1; 256] };
+        let b : Poly = Poly { coeffs: [2; 256] };
+        let c = a.add(&b);
+        assert_eq!(c.coeffs, [3; 256]);
+    }
     
 }
