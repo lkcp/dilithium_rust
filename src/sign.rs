@@ -2,6 +2,10 @@ mod sign {
 
     use crate::params::{get_params, d};
     use crate::polyvec::polyvec::PolyVec;
+<<<<<<< HEAD
+=======
+    use crate::hints::power_2_round_q;
+>>>>>>> a96b6b2fc49e29c054c09a7926660e7f94d3c6be
     use sha3::{
         digest::{ExtendableOutput, Update, XofReader},
         Shake256,
@@ -29,17 +33,30 @@ mod sign {
         let mut s1 = PolyVec::new(l as usize);
         let mut s2 = PolyVec::new(k as usize);
 
+<<<<<<< HEAD
+=======
+        // gen A
+>>>>>>> a96b6b2fc49e29c054c09a7926660e7f94d3c6be
         for i in 0..k as usize {
             for j in 0..l as usize {
                 A[i].vec[j] = crate::sample::reject_sample(rho, (i as u8 * l + j as u8) as u8);
             }
         }
 
+<<<<<<< HEAD
         for i in 0..(k+l) as usize {
             if i < k {
             s1.vec[i] = crate::sample::error_sample(rhoprime, i as u8, eta);
             } else {
                 s2.vec[i-k] = crate::sample::error_sample(rhoprime, i as u8, eta);
+=======
+        //gen s1, s2
+        for i in 0..(k+l) as usize {
+            if i < k as usize {
+            s1.vec[i] = crate::sample::error_sample(rhoprime, i as u8, eta);
+            } else {
+                s2.vec[i-k as usize] = crate::sample::error_sample(rhoprime, i as u8, eta);
+>>>>>>> a96b6b2fc49e29c054c09a7926660e7f94d3c6be
             }
         }
 
@@ -53,6 +70,12 @@ mod sign {
             t.vec[i] = t.vec[i].add(&s2.vec[i]);
         }
 
+<<<<<<< HEAD
+=======
+        let (t1, t0) = power_2_round_q(t, d);
+
+        H.update(&rho);
+>>>>>>> a96b6b2fc49e29c054c09a7926660e7f94d3c6be
 
         let mut c = [0u8; 122];
         c
