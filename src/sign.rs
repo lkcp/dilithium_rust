@@ -36,10 +36,10 @@ mod sign {
         }
 
         for i in 0..(k+l) as usize {
-            if i < k {
+            if i < k as usize {
             s1.vec[i] = crate::sample::error_sample(rhoprime, i as u8, eta);
             } else {
-                s2.vec[i-k] = crate::sample::error_sample(rhoprime, i as u8, eta);
+                s2.vec[i-k as usize] = crate::sample::error_sample(rhoprime, i as u8, eta);
             }
         }
 

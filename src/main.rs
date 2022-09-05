@@ -5,11 +5,8 @@ pub mod back;
 mod polyvec;
 mod sample;
 mod sign;
-<<<<<<< HEAD
-=======
 mod hints;
 mod pack;
->>>>>>> a96b6b2fc49e29c054c09a7926660e7f94d3c6be
 
 use poly::Poly;
 
