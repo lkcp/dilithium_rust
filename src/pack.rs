@@ -1,4 +1,4 @@
-use crate::polyvec::polyvec::PolyVec;
+use crate::{polyvec::polyvec::PolyVec, poly::Poly};
 
 
 
@@ -33,4 +33,22 @@ pub fn pack_pk(t1: &PolyVec, k:u8, rho: &[u8;32]) -> Vec<u8> {
         }
     }
     pk
+}
+
+// pack s1, s2 into byte arrays
+pub fn pack_s1_s2(s1:Poly, s2:Poly) -> [u8; 64] {
+    let mut c = [0u8; 64];
+    let mut pos = 0;
+    for i in 0..s1.coeffs.len() {
+        let mut t = s1.coeffs[i] << 3;
+        t = t | s2.coeffs[i];
+        c[pos] = (t & 0xff) as u8;
+        c[pos+1] = ((t >> 8) & 0xff) as u8;
+        c[pos+2] = ((t >> 16) & 0xff) as u8;
+        pos += 3;
+    }
+    c
+}
+{
+
 }
