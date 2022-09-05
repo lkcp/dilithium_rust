@@ -5,6 +5,8 @@ pub mod back;
 mod polyvec;
 mod sample;
 mod sign;
+mod hints;
+mod pack;
 
 use poly::Poly;
 
