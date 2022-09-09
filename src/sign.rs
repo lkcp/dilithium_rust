@@ -1,7 +1,7 @@
 mod sign {
 
     use crate::hints::power_2_round_q;
-    use crate::pack::pack_pk;
+    use crate::pack::{pack_pk, pack_sk};
     use crate::params::{get_params, d};
     use crate::polyvec::polyvec::PolyVec;
     use sha3::{
@@ -9,8 +9,9 @@ mod sign {
         Shake256,
     };
 
-    fn key_pair(seed: [u8; 32], security_level: u8) -> [u8; 122] {
+    fn key_pair(seed: [u8; 32], security_level: u8) -> (Vec<u8>, Vec<u8>) {
         let (k, l, eta) = get_params(security_level);
+
         // use SHAKE256 to generaterho, rho' and K, whose length are 32, 64 and 32 bytes respectively
         let mut H = Shake256::default();
         H.update(&seed);
@@ -50,25 +51,30 @@ mod sign {
         
         // calculate t = NTT^-1(A_hat * s1_hat+s2_hat)
         s1.ntt();
-        s2.ntt();
         let mut t = PolyVec::new(l as usize);
         for i in 0..k as usize {
             t.vec[i] = A[i].pointwise_acc(&s1);
-            t.vec[i] = t.vec[i].add(&s2.vec[i]);
         }
+        t.add(&s2);
+        t.intt();
 
         // calculate t1 and t0
         let (t1, t0) = power_2_round_q(t, d);
 
+        // pack pk
         let pk = pack_pk(&t1, k, &rho);
+
+        // get tr
         H = Shake256::default();
         H.update(&pk);
         let mut reader = H.finalize_xof();
         let mut tr = [0u8; 32];
         reader.read(&mut tr);
 
-        let mut c = [0u8; 122];
-        c
+        // pack sk
+        let sk = pack_sk(&rho, &K, &tr, &s1, &s2, &t0, eta as i32);
+
+        (pk, sk)
     }
 
     #[cfg(test)]
@@ -91,12 +97,20 @@ mod sign {
             assert!(rho == out);
         }
 
-        // fn test_key_gen() {
-        //     let seed = b"09FABF8AC2A452A4169BF6B7F5C40B8EDD1BDD02BE67A6E78918C095DC8DE354C9EA17BF9AABB6F8935706A2F2A6E4BFA9ECC875204DDA706EB7B6975783C1F3";
+        #[test]
+        fn test_key_gen() {
+            let seed = [0x9f, 0xd9, 0xaa, 0xfd, 0x8f, 0xc9, 0x01, 0xf5, 0x00, 0x85, 0xde, 0x82, 0x68, 0xc2, 0xd6, 0x30, 0x26, 0xdd, 0x8e, 0x35, 0xf8, 0x9d, 0xd1, 0xe2, 0xbc, 0x15, 0x1d, 0x7d, 0x20, 0xd0, 0x97, 0x96];
 
-        //     let security_level = 1;
-        //     let pk = super::key_gen(seed, security_level);
-        //     assert_eq!(pk.len(), 122);
-        // }
+            let security_level = 2;
+            let (pk, sk) = super::key_pair(seed, security_level);
+            let mut hpk = [0u8; 32];
+            let mut H = Shake256::default();
+            H.update(&pk);
+            let mut reader = H.finalize_xof();
+            reader.read(&mut hpk);
+            println!("{:?}", hpk);
+            // println!("{:?}", sk);
+            assert_eq!(pk.len(), 122);
+        }
     }
 }

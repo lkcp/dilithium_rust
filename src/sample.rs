@@ -9,7 +9,7 @@ pub fn reject_sample(seed: [u8; 32], i: u8, j: u8) -> Poly {
     let mut p = Poly::new();
     let mut H = Shake128::default();
     H.update(&seed);
-    H.update(&[i, j]);
+    H.update(&[j, i]);
     let mut reader = H.finalize_xof();
     let mut buf = [0u8; 3];
     for i in 0..256 {
@@ -33,7 +33,7 @@ pub fn error_sample(seed: [u8; 64], nonce: u8, eta: u8) -> Poly {
     let mut p = Poly::new();
     let mut H = Shake256::default();
     H.update(&seed);
-    H.update(&[0, nonce]);
+    H.update(&[nonce, 0]);
     let mut reader = H.finalize_xof();
     let mut buf = [0u8; 1];
     let mut i: usize = 0;
