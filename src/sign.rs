@@ -8,6 +8,8 @@ mod sign {
         digest::{ExtendableOutput, Update, XofReader},
         Shake256,
     };
+    use crate::pack::pack_pk;
+    use crate::hints::power_2_round_q;
 
     fn key_pair(seed: [u8; 32], security_level: u8) -> (Vec<u8>, Vec<u8>) {
         let (k, l, eta) = get_params(security_level);
@@ -47,7 +49,6 @@ mod sign {
                 s2.vec[i-k as usize] = crate::sample::error_sample(rhoprime, i as u8, eta);
             }
         }
-
         
         // calculate t = NTT^-1(A_hat * NTT(s1))+s2
         let mut s1_hat = s1.copy();
