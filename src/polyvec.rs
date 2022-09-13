@@ -67,6 +67,21 @@ pub mod polyvec {
             let _ = self.vec[0].intt();
             self.vec[0];
         }
+
+        pub fn caddq(&mut self) {
+            for i in 0..self.len {
+                self.vec[i].caddq();
+            }
+        }
+
+        // return a copy of this instance
+        pub fn copy(&self) -> PolyVec {
+            let mut pv = PolyVec::new(self.len);
+            for i in 0..self.len {
+                pv.set(i, self.vec[i]);
+            }
+            pv
+        }
     }
 
     #[cfg(test)]

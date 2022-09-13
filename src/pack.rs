@@ -10,20 +10,20 @@ pub fn pack_pk(t1: &PolyVec, k: u8, rho: &[u8; 32]) -> Vec<u8> {
         let mut j = 0;
         loop {
             // pack 4 coeffs into 5 bytes
-            pk.push((t1.vec[i].coeffs[j] & 0xFF) as u8);
+            pk.push((t1.vec[i].coeffs[j] & 0xFF) as u8);  //8
             pk.push(
                 (((t1.vec[i].coeffs[j] >> 8) & 0x03) | ((t1.vec[i].coeffs[j + 1]) & 0x3F) << 2)
                     as u8,
-            );
+            ); // 2 6
             pk.push(
                 ((((t1.vec[i].coeffs[j + 1]) >> 6) & 0x0F)
                     | (((t1.vec[i].coeffs[j + 2]) & 0x0F) << 4)) as u8,
-            );
+            );  // 4 4
             pk.push(
-                (((t1.vec[i].coeffs[j + 2] >> 4) & 0x0F) | ((t1.vec[i].coeffs[j + 3] & 0x03) << 6))
+                (((t1.vec[i].coeffs[j + 2] >> 4) & 0x3F) | ((t1.vec[i].coeffs[j + 3] & 0x03) << 6))
                     as u8,
-            );
-            pk.push(((t1.vec[i].coeffs[j + 3] >> 2) & 0xFF) as u8);
+            ); // 6 2
+            pk.push(((t1.vec[i].coeffs[j + 3] >> 2) & 0xFF) as u8); // 8
             j += 4;
             if j == 256 {
                 break;
