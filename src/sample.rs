@@ -1,3 +1,4 @@
+use crate::pack::unpack_y;
 use crate::params::Q;
 use crate::poly::Poly;
 use crate::polyvec::polyvec::PolyVec;
@@ -67,6 +68,30 @@ pub fn error_sample(seed: [u8; 64], nonce: u8, eta: u8) -> Poly {
     p
 }
 
+// gamma1 = 1 << gamma1
+pub fn expand_mask(rhoprime: [u8; 64], nonce: i32, i: i32, gamma1: i32) -> Poly {
+    let mut y = Poly::new();
+
+    let mut H = Shake256::default();
+    H.update(&rhoprime);
+    H.update(&[(nonce+i) as u8, ((nonce+i) >> 8) as u8]);
+    let mut reader = H.finalize_xof();
+
+    if gamma1 == 1 << 17 {
+        let mut buf = [0u8; 576];
+        reader.read(&mut buf);
+        y = unpack_y(gamma1, (&buf).to_vec());
+    }
+    else if gamma1 == 1 << 19 {
+        let mut buf = [0u8; 640];
+        reader.read(&mut buf);
+        y = unpack_y(gamma1, (&buf).to_vec());
+    } 
+    else {
+        panic!("gamma1 not supported");
+    }
+    y
+}
 
 #[cfg(test)]
 mod test {

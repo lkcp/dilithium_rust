@@ -1,15 +1,18 @@
 mod sign {
 
+    use std::fs::read;
+
     use crate::hints::power_2_round_q;
-    use crate::pack::{pack_pk, pack_sk};
-    use crate::params::{get_params, d};
+    use crate::pack::{pack_pk, pack_sk, unpack_pk, unpack_sk};
+    use crate::params::{get_params, d, get_params_sign};
     use crate::polyvec::polyvec::PolyVec;
+    use crate::sample::expand_mask;
     use sha3::{
         digest::{ExtendableOutput, Update, XofReader},
         Shake256,
     };
-    use crate::pack::pack_pk;
-    use crate::hints::power_2_round_q;
+
+    
 
     fn key_pair(seed: [u8; 32], security_level: u8) -> (Vec<u8>, Vec<u8>) {
         let (k, l, eta) = get_params(security_level);
@@ -44,9 +47,9 @@ mod sign {
         // gen s1, s2
         for i in 0..(k+l) as usize {
             if i < k as usize {
-            s1.vec[i] = crate::sample::error_sample(rhoprime, i as u8, eta);
+            s1.vec[i] = crate::sample::error_sample(rhoprime, i as u8, eta as u8);
             } else {
-                s2.vec[i-k as usize] = crate::sample::error_sample(rhoprime, i as u8, eta);
+                s2.vec[i-k as usize] = crate::sample::error_sample(rhoprime, i as u8, eta as u8);
             }
         }
         
@@ -66,7 +69,7 @@ mod sign {
         let (t1, t0) = power_2_round_q(t, d);
 
         // pack pk
-        let pk = pack_pk(&t1, k, &rho);
+        let pk = pack_pk(&t1, k as u8, &rho);
 
         // get tr
         H = Shake256::default();
@@ -79,6 +82,69 @@ mod sign {
         let sk = pack_sk(&rho, &K, &tr, &s1, &s2, &t0, eta as i32);
 
         (pk, sk)
+    }
+
+    fn sign(sk: Vec<u8>, m: Vec<u8>) -> Vec<u8> {
+        let (k, l, eta, gamma1, gamma2) = get_params_sign(2);
+
+        let (rho, K, tr, s1, s2, t0) = unpack_sk(sk, eta, k, l);
+
+
+        // use SHAKE256 to generate a random polynomial A (k*l polynomials)
+        let mut A = Vec::new();
+        for i in 0..k {
+            A.push(PolyVec::new(l as usize));
+        }
+        for i in 0..k as usize {
+            for j in 0..l as usize {
+                A[i].vec[j] = crate::sample::reject_sample(rho, i as u8, j as u8);
+            }
+        }
+
+        let mut mu = [0u8; 64];
+        let mut rhoprime = [0u8; 64];
+
+        // mu = H(tr || m)
+        let mut H = Shake256::default();
+        H.update(&tr);
+        H.update(&m);
+        let mut reader = H.finalize_xof();
+        reader.read(&mut mu);
+
+        // rhoprime = H(K || mu)
+        H = Shake256::default();
+        H.update(&K);
+        H.update(&mu);
+        reader = H.finalize_xof();
+        reader.read(&mut rhoprime);
+
+        let mut nonce = 0;
+        let mut z = PolyVec::new(l as usize);
+        let mut h = PolyVec::new(k as usize);
+
+        let delta = vec![];
+
+        let mut pass  = false;
+
+        while !pass {
+            let mut y = PolyVec::new(l as usize);
+            for i in 0..l as usize {
+                y.set(i, expand_mask(rhoprime, nonce, i as i32, gamma1));
+            }
+            let mut y_hat = y.copy();
+            y_hat.ntt();
+            let mut w = PolyVec::new(k as usize);
+            for i in 0..k as usize {
+                w.vec[i] = A[i].pointwise_acc(&y_hat);
+            }
+            w.intt();
+            let w1 = w.high_bits(gamma2);
+
+
+            nonce += l;
+        }
+
+        delta
     }
 
     #[cfg(test)]

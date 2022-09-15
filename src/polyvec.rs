@@ -82,6 +82,22 @@ pub mod polyvec {
             }
             pv
         }
+        
+        pub fn high_bits(&self, gamma2: i32) -> PolyVec {
+            let mut t = PolyVec::new(self.len);
+            for i in 0..self.len {
+                t.set(i, self.vec[i].high_bits(gamma2));
+            }
+            t
+        }
+
+        pub fn low_bits(&self, gamma2: i32) -> PolyVec {
+            let mut t = PolyVec::new(self.len);
+            for i in 0..self.len {
+                t.set(i, self.vec[i].low_bits(gamma2));
+            }
+            t
+        }
     }
 
     #[cfg(test)]
