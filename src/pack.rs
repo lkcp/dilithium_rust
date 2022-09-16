@@ -342,3 +342,44 @@ pub fn unpack_y(gamma1: i32, ba: Vec<u8>) -> Poly {
 
     y
 }
+
+pub fn pack_w1(w1: PolyVec, gamma1: i32, k: i32) -> Vec<u8> {
+    // coeff of w1 is in [0, 43], takes 6 bits, k*256*6/8
+    // 4 coeffs into 3 bytes
+    if gamma1 == 95232 {
+        let mut buf = vec![0u8; 192*k as usize];
+        for i in 0..w1.len {
+            let mut j = 0;
+            loop {
+                buf[i*192+j*3] = w1.vec[i].coeffs[j*4] as u8 | ((w1.vec[i].coeffs[j*4+1] & 0x03) << 6) as u8; // 6 2
+                buf[i*192+j*3+1] = ((w1.vec[i].coeffs[j*4+1] >> 2) & 0x0F) as u8 | ((w1.vec[i].coeffs[j*4+2] & 0x0F) << 4) as u8; // 4 4
+                buf[i*192+j*3+2] = ((w1.vec[i].coeffs[j*4+2] >> 4) & 0x03) as u8 | (w1.vec[i].coeffs[j*4+3] << 2) as u8; // 2 6 
+
+                j += 4;
+                if j == 256 {
+                    break;
+                }
+            }
+        }
+
+        buf
+    }
+     // coeff of w1 is in [0, 15], takes 4 bits, k*256*4/8
+    else if gamma1 == 261888 {
+        let mut buf = vec![0u8; 128*k as usize];
+        for i in 0..w1.len {
+            let mut j = 0;
+            loop {
+                buf[i*128+j] = w1.vec[i].coeffs[j*2] as u8 | (w1.vec[i].coeffs[j*2+1] << 4) as u8;
+                j += 2;
+                if j == 256 {
+                    break;
+                }
+            }
+        }
+        buf
+    }
+    else {
+        panic!("ga");
+    }
+}

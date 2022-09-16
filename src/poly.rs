@@ -55,6 +55,20 @@ impl Poly {
         }
         c
     }
+
+    // negation
+    pub fn neg(&self) -> Poly {
+        let mut c: Poly = Poly::new();
+        let mut i: usize = 0;
+        loop {
+            c.coeffs[i] = -self.coeffs[i];
+            i += 1;
+            if i == 256 {
+                break;
+            }
+        }
+        c
+    }
 }
 
 impl Poly {
@@ -150,6 +164,18 @@ impl Poly {
         }
 
         t
+    }
+
+    // infinite norm
+    pub fn inf_norm(&self) -> i32 {
+        let mut max: i32 = 0;
+        for coeff in self.coeffs.iter() {
+            let abs: i32 = (*coeff >> 31) ^ *coeff;
+            if abs > max {
+                max = abs;
+            }
+        }
+        max
     }
 }
 

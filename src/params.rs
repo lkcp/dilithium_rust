@@ -17,12 +17,12 @@ pub fn get_params(level: u8) -> (i32, i32, i32) //k, l, eta
     }
 }
 
-pub fn get_params_sign(level: u8) -> (i32, i32, i32, i32, i32) //k, l, eta, gamma1, gamma2
+pub fn get_params_sign(level: u8) -> (i32, i32, i32, i32, i32, i32) //k, l, eta, gamma1, gamma2, tau, beta
 {
     match level {
-        2 => (4, 4, 2, 1<<17, 95232),
-        3 => (6, 5, 4, 1<<19, 261888),
-        5 => (8, 7, 2, 1<<19, 261888),
+        2 => (4, 4, 2, 1<<17, 95232, 39),
+        3 => (6, 5, 4, 1<<19, 261888, 49),
+        5 => (8, 7, 2, 1<<19, 261888, 60),
         // others will panic
         _ => panic!("security level not supported"),
     }

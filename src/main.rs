@@ -7,6 +7,7 @@ mod sample;
 mod sign;
 mod hints;
 mod pack;
+mod utils;
 
 use poly::Poly;
 

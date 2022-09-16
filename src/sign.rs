@@ -2,11 +2,11 @@ mod sign {
 
     use std::fs::read;
 
-    use crate::hints::power_2_round_q;
-    use crate::pack::{pack_pk, pack_sk, unpack_pk, unpack_sk};
+    use crate::hints::{power_2_round_q, high_bits, low_bits, make_hints};
+    use crate::pack::{pack_pk, pack_sk, unpack_pk, unpack_sk, pack_w1};
     use crate::params::{get_params, d, get_params_sign};
     use crate::polyvec::polyvec::PolyVec;
-    use crate::sample::expand_mask;
+    use crate::sample::{expand_mask, sample_in_ball};
     use sha3::{
         digest::{ExtendableOutput, Update, XofReader},
         Shake256,
@@ -85,9 +85,9 @@ mod sign {
     }
 
     fn sign(sk: Vec<u8>, m: Vec<u8>) -> Vec<u8> {
-        let (k, l, eta, gamma1, gamma2) = get_params_sign(2);
+        let (k, l, eta, gamma1, gamma2, tau) = get_params_sign(2);
 
-        let (rho, K, tr, s1, s2, t0) = unpack_sk(sk, eta, k, l);
+        let (rho, K, tr, mut s1, mut s2, t0) = unpack_sk(sk, eta, k, l);
 
 
         // use SHAKE256 to generate a random polynomial A (k*l polynomials)
@@ -139,7 +139,40 @@ mod sign {
             }
             w.intt();
             let w1 = w.high_bits(gamma2);
+            let w1 = pack_w1(w1, gamma1, k);
+            H = Shake256::default();
+            H.update(&mu);
+            H.update(&w1);
+            reader = H.finalize_xof();
+            let mut cp = [0u8;32];
+            reader.read(&mut cp);
+            let mut c = sample_in_ball(cp, tau);
+            c.ntt();
+            s1.ntt();
+            s2.ntt();
+            for i in 0..l as usize {
+                z.vec[i] = c.point_wise_mul(&s1.vec[i]);
+                z.vec[i].intt();
+                z.vec[i] = z.vec[i].add(&y.vec[i]);
+            }
+            let mut pv0 = w.copy(); // record w - cs2
+            for i in 0..k as usize {
+                pv0.vec[i] = c.point_wise_mul(&s2.vec[i]);
+                pv0.vec[i].intt();
+                pv0.vec[i] = w.vec[i].sub(&pv0.vec[i]);
+            }
+            let r0 = pv0.low_bits(gamma2);
+            nonce += l;
+            if z.inf_norm() >= (gamma1 - tau*eta) {continue;}
+            if r0.inf_norm() >= (gamma2-tau*eta) {continue;}
 
+            let mut pv1 = PolyVec::new(k as usize);
+            for i in 0..k as usize {
+                pv1.vec[i] = c.point_wise_mul(&t0.vec[i]);
+                pv1.vec[i].intt();
+            }
+
+            h = make_hints(pv1.neg(), pv1.add(&pv0), gamma2);
 
             nonce += l;
         }

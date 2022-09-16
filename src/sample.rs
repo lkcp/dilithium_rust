@@ -93,6 +93,31 @@ pub fn expand_mask(rhoprime: [u8; 64], nonce: i32, i: i32, gamma1: i32) -> Poly 
     y
 }
 
+// return a poly with \tau 1/-1's and 256-\tau 0's
+pub fn sample_in_ball(cp: [u8; 32], tau: i32) -> Poly {
+    let mut c = Poly::new();
+    let mut H = Shake128::default();
+    H.update(&cp);
+    let mut reader = H.finalize_xof();
+    let mut buf1 = [0u8; 8];
+    let mut buf2 = [0u8; 1];
+    // the first 8 bytes are used to generate the \tau signs, the rest 64-\tau is discarded
+    reader.read(&mut buf1);
+    for i in 256-tau as usize..256 {
+        let mut j = 257;
+        while j > i {
+            reader.read(&mut buf2);
+            j = buf2[0] as usize;
+        }
+        c.coeffs[i] = c.coeffs[j];
+        c.coeffs[j] = match (buf1[((i-256+tau as usize) / 8) as usize] >> (((i-256+tau as usize) % 8))) & 0x01 {
+            0 => 1,
+            _ => -1,
+        };
+    }
+    c
+}
+
 #[cfg(test)]
 mod test {
     use crate::poly;

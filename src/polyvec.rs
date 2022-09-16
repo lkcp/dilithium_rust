@@ -40,6 +40,15 @@ pub mod polyvec {
             self.vec[i] = self.vec[i].sub(poly);
         }
 
+        // negation
+        pub fn neg(&mut self) -> PolyVec {
+            let mut n = self.copy();
+            for i in 0..self.len {
+                n.vec[i] = n.vec[i].neg();
+            }
+            n
+        }
+
         pub fn ntt(&mut self) {
             for i in 0..self.len {
                 self.vec[i].ntt();
@@ -97,6 +106,18 @@ pub mod polyvec {
                 t.set(i, self.vec[i].low_bits(gamma2));
             }
             t
+        }
+
+        //infinite norm
+        pub fn inf_norm(&self) -> i32 {
+            let mut max = 0;
+            for i in 0..self.len {
+                let norm = self.vec[i].inf_norm();
+                if norm > max {
+                    max = norm;
+                }
+            }
+            max
         }
     }
 
