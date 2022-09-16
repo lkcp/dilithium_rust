@@ -54,6 +54,16 @@ pub fn make_hints(r: i32, z:i32, gamma2: i32) -> i32 {
     else {return 0;}
 }
 
+pub fn make_hints_pv(r: PolyVec, z: PolyVec, gamma2: i32) -> PolyVec {
+    let mut h = PolyVec::new(r.vec.len());
+    for i in 0..r.vec.len() {
+        for j in 0..r.vec[i].coeffs.len() {
+            h.vec[i].coeffs[j] = make_hints(r.vec[i].coeffs[j], z.vec[i].coeffs[j], gamma2);
+        }
+    }
+    h
+}
+
 pub fn use_hints(h:i32, r:i32, gamma2: i32) -> i32 {
     let (r1, r0) = decompose(r, gamma2);
     if h == 0 {return r1;}
@@ -77,7 +87,7 @@ pub fn use_hints(h:i32, r:i32, gamma2: i32) -> i32 {
         if r0 > 0 {return (r1 + 1) & 15;}
         else {return (r1 - 1)&15;}
     } // Q-1 / 32
-    
+
     else {
         panic!("gamma2 not supported");
     }

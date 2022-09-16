@@ -2,8 +2,8 @@ mod sign {
 
     use std::fs::read;
 
-    use crate::hints::{power_2_round_q, high_bits, low_bits, make_hints};
-    use crate::pack::{pack_pk, pack_sk, unpack_pk, unpack_sk, pack_w1};
+    use crate::hints::{power_2_round_q, high_bits, low_bits, make_hints, make_hints_pv};
+    use crate::pack::{pack_pk, pack_sk, unpack_pk, unpack_sk, pack_w1, pack_delta};
     use crate::params::{get_params, d, get_params_sign};
     use crate::polyvec::polyvec::PolyVec;
     use crate::sample::{expand_mask, sample_in_ball};
@@ -85,6 +85,7 @@ mod sign {
     }
 
     fn sign(sk: Vec<u8>, m: Vec<u8>) -> Vec<u8> {
+        const level: i32 = 2;
         let (k, l, eta, gamma1, gamma2, tau) = get_params_sign(2);
 
         let (rho, K, tr, mut s1, mut s2, t0) = unpack_sk(sk, eta, k, l);
@@ -122,7 +123,7 @@ mod sign {
         let mut z = PolyVec::new(l as usize);
         let mut h = PolyVec::new(k as usize);
 
-        let delta = vec![];
+        let mut delta = vec![];
 
         let mut pass  = false;
 
@@ -172,9 +173,10 @@ mod sign {
                 pv1.vec[i].intt();
             }
 
-            h = make_hints(pv1.neg(), pv1.add(&pv0), gamma2);
-
-            nonce += l;
+            h = make_hints_pv(pv1.neg(), pv1.add(&pv0), gamma2);
+            if pv1.inf_norm() >= gamma2 {continue;}
+            pass = true;
+            delta = pack_delta(cp, z, h, level);
         }
 
         delta

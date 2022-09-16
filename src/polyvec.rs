@@ -30,10 +30,12 @@ pub mod polyvec {
             self.vec[i] = poly;
         }
 
-        pub fn add(&mut self, pv: &PolyVec) {
+        pub fn add(&mut self, pv: &PolyVec) -> PolyVec {
+            let mut s = self.copy();
             for i in 0..self.len {
-                self.vec[i] = self.vec[i].add(pv.get(i));
+                s.vec[i] = s.vec[i].add(pv.get(i));
             }
+            return s
         }
 
         pub fn sub(&mut self, i: usize, poly: &Poly) {

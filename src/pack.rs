@@ -1,4 +1,5 @@
 use std::sync::BarrierWaitResult;
+use std::vec;
 
 use crate::params::d;
 use crate::poly::Poly;
@@ -382,4 +383,68 @@ pub fn pack_w1(w1: PolyVec, gamma1: i32, k: i32) -> Vec<u8> {
     else {
         panic!("ga");
     }
+}
+
+fn pack_z(z: PolyVec, level: i32) -> Vec<u8> {
+    // coeff of z is in [-2^17-1, 2^17], takes 18 bits, 256*18/8*l, l= 4
+    // pack 4 coeffs into 9 bytes
+    if level==2 {
+        let mut buf = vec![0u8; 576*4];
+        for i in 0..z.len {
+            let mut j = 0;
+            loop {
+                buf[i*576+j*9] = z.vec[i].coeffs[j*4] as u8; // 8
+                buf[i*576+j*9+1] = (z.vec[i].coeffs[j*4] >> 8) as u8; // 8
+                buf[i*576+j*9+2] = ((z.vec[i].coeffs[j*4] >> 16) & 0x03) as u8 | ((z.vec[i].coeffs[j*4+1] & 0x3F) << 2) as u8; // 2 6
+                buf[i*576+j*9+3] = (z.vec[i].coeffs[j*4+1] >> 6) as u8; // 8
+                buf[i*576+j*9+4] = ((z.vec[i].coeffs[j*4+1] >> 14) & 0x0F) as u8 | ((z.vec[i].coeffs[j*4+2] & 0x0F) << 4) as u8; // 4 4
+                buf[i*576+j*9+5] = (z.vec[i].coeffs[j*4+2] >> 4) as u8; // 8
+                buf[i*576+j*9+6] = ((z.vec[i].coeffs[j*4+2] >> 12) & 0x3F) as u8 | ((z.vec[i].coeffs[j*4+3] & 0x03) << 6) as u8; // 6 2
+                buf[i*576+j*9+7] = (z.vec[i].coeffs[j*4+3] >> 2) as u8; // 8
+                buf[i*576+j*9+8] = (z.vec[i].coeffs[j*4+3] >> 10) as u8; // 8
+                j += 1;
+                if j*4 == 256 {break;}
+            }
+        }
+        buf
+    }
+    // coeff of z is in [-2^19-1, 2^19], takes 18 bits, 256*20/8*l, l=5
+    // pack 2 coeffs into 5 bytes
+    else if level == 3 || level == 5{
+        let mut buf = vec![0u8; 640*z.len as usize];
+        for i in 0..z.len {
+            let mut j = 0;
+            loop {
+                buf[i*640+j*5] = z.vec[i].coeffs[j*2] as u8; // 8
+                buf[i*640+j*5+1] = (z.vec[i].coeffs[j*2] >> 8) as u8; // 8
+                buf[i*640+j*5+2] = ((z.vec[i].coeffs[j*2] >> 16) & 0x0F) as u8 | ((z.vec[i].coeffs[j*2+1] & 0x0F) << 4) as u8; // 4 4
+                buf[i*640+j*5+3] = (z.vec[i].coeffs[j*2+1] >> 4) as u8; // 8
+                buf[i*640+j*5+4] = (z.vec[i].coeffs[j*2+1] >> 12) as u8; // 8
+                j += 1;
+                if j*2 == 256 {break;}
+            }
+        }
+        buf
+    }
+
+    else {
+        panic!("level is not 2, 3, 5");
+    }
+}
+
+pub fn pack_delta(cp: [u8; 32], z: PolyVec, h: PolyVec, level: i32) -> Vec<u8>{
+    let buf = cp.to_vec();
+    buf.append(&mut pack_z(z, level));
+    for i in 0..h.len {
+        let mut j = 0;
+        loop {
+            let a = 0u8;
+            for k in j..j+8 {
+                a = a | (h.vec[i].coeffs[k] << (k-j)) as u8;
+            }
+            buf.push(a);
+            j += 8;
+        }
+    }
+    buf
 }
