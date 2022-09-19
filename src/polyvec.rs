@@ -64,13 +64,11 @@ pub mod polyvec {
         }
 
         pub fn pointwise_acc(&mut self, b: &PolyVec) -> Poly {
+            let mut acc = Poly::new();
             for i in 0..self.len {
-                self.vec[i] = self.vec[i].point_wise_mul(&b.vec[i]);
-                if i > 0 {
-                    self.vec[0] = self.vec[0].add(&self.vec[i]);
-                }
+                acc = acc.add(&self.vec[i].point_wise_mul(&b.vec[i]));
             }
-            self.vec[0]
+            acc
         }
 
         pub fn pointwise_acc_invmontgomery(&mut self, b: &PolyVec) {

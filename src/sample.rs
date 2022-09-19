@@ -96,7 +96,7 @@ pub fn expand_mask(rhoprime: [u8; 64], nonce: i32, i: i32, gamma1: i32) -> Poly 
 // return a poly with \tau 1/-1's and 256-\tau 0's
 pub fn sample_in_ball(cp: [u8; 32], tau: i32) -> Poly {
     let mut c = Poly::new();
-    let mut H = Shake128::default();
+    let mut H = Shake256::default();
     H.update(&cp);
     let mut reader = H.finalize_xof();
     let mut buf1 = [0u8; 8];

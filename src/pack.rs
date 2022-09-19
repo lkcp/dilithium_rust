@@ -197,6 +197,51 @@ fn unpack_eta(eta: i32, k: i32, l:i32, ba: Vec<u8>) -> (PolyVec, PolyVec) {
         }
     }
 
+    for i in 0..k as usize {
+        let mut j = 0;
+        loop {
+            if eta == 2 {
+                s2.vec[i].coeffs[j*8] = (ba[(i+l as usize) * 96 + j * 3] & 0x07) as i32; // 3
+                s2.vec[i].coeffs[j*8 + 1] = ((ba[(i+l as usize)  * 96 + j * 3] >> 3) & 0x07) as i32; // 3
+                s2.vec[i].coeffs[j*8 + 2] = ((ba[(i+l as usize)  * 96 + j * 3] >> 6) & 0x03) as i32
+                    | ((ba[(i+l as usize) * 96 + j * 3 + 1] & 0x01) << 2) as i32; // 2 1
+                s2.vec[i].coeffs[j*8 + 3] = ((ba[(i+l as usize)  * 96 + j * 3 + 1] >> 1) & 0x07) as i32; // 3
+                s2.vec[i].coeffs[j*8 + 4] = ((ba[(i+l as usize)  * 96 + j * 3 + 1] >> 4) & 0x07) as i32; // 3
+                s2.vec[i].coeffs[j*8 + 5] = ((ba[(i+l as usize)  * 96 + j * 3 + 1] >> 7) & 0x01) as i32
+                    | ((ba[(i+l as usize) * 96 + j * 3 + 2] & 0x03) << 1) as i32; // 1 2
+                s2.vec[i].coeffs[j*8 + 6] = ((ba[(i+l as usize)  * 96 + j * 3 + 2] >> 2) & 0x07) as i32; // 3
+                s2.vec[i].coeffs[j*8 + 7] = ((ba[(i+l as usize)  * 96 + j * 3 + 2] >> 5) & 0x07) as i32; // 3
+
+                s2.vec[i].coeffs[j*8] = eta - s2.vec[i].coeffs[j*8];
+                s2.vec[i].coeffs[j*8 + 1] = eta - s2.vec[i].coeffs[j*8 + 1];
+                s2.vec[i].coeffs[j*8 + 2] = eta - s2.vec[i].coeffs[j*8 + 2];
+                s2.vec[i].coeffs[j*8 + 3] = eta - s2.vec[i].coeffs[j*8 + 3];
+                s2.vec[i].coeffs[j*8 + 4] = eta - s2.vec[i].coeffs[j*8 + 4];
+                s2.vec[i].coeffs[j*8 + 5] = eta - s2.vec[i].coeffs[j*8 + 5];
+                s2.vec[i].coeffs[j*8 + 6] = eta - s2.vec[i].coeffs[j*8 + 6];
+                s2.vec[i].coeffs[j*8 + 7] = eta - s2.vec[i].coeffs[j*8 + 7];
+
+                j += 1;
+                if j*8 == 256 {
+                    break;
+                }
+            } else if eta == 4 {
+                s2.vec[i].coeffs[j*2] = (ba[(i+l as usize)  * 32 + j * 1] & 0x0F) as i32; // 4
+                s2.vec[i].coeffs[j*2 + 1] = ((ba[(i+l as usize)  * 32 + j * 1] >> 4) & 0x0F) as i32; // 4
+
+                s2.vec[i].coeffs[j*2] = eta - s2.vec[i].coeffs[j*2];
+                s2.vec[i].coeffs[j*2 + 1] = eta - s2.vec[i].coeffs[j*2 + 1];
+
+                j += 1;
+                if j*2 == 256 {
+                    break;
+                }
+            } else {
+                panic!("eta should be 2 or 4");
+            }
+        }
+    }
+
     (s1, s2)
 }
 
