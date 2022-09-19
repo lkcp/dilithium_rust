@@ -68,7 +68,7 @@ pub fn error_sample(seed: [u8; 64], nonce: u8, eta: u8) -> Poly {
     p
 }
 
-// gamma1 = 1 << gamma1
+
 pub fn expand_mask(rhoprime: [u8; 64], nonce: i32, i: i32, gamma1: i32) -> Poly {
     let mut y = Poly::new();
 
@@ -110,7 +110,7 @@ pub fn sample_in_ball(cp: [u8; 32], tau: i32) -> Poly {
             j = buf2[0] as usize;
         }
         c.coeffs[i] = c.coeffs[j];
-        c.coeffs[j] = match (buf1[((i-256+tau as usize) / 8) as usize] >> (((i-256+tau as usize) % 8))) & 0x01 {
+        c.coeffs[j] = match (buf1[((i+tau as usize-256) / 8) as usize] >> (((i + tau as usize -256) % 8))) & 0x01 {
             0 => 1,
             _ => -1,
         };

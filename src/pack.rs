@@ -301,16 +301,16 @@ pub fn unpack_y(gamma1: i32, ba: Vec<u8>) -> Poly {
     if gamma1 == 1 << 17 {
         loop {
             y.coeffs[i*4] = (ba[i * 9] as i32)
-                | ((ba[i * 9 + 1] << 8) as i32) | ((ba[i*9+2] & 0x03) << 16) as i32; // 8 8 2
-            y.coeffs[i*4+1] = ((ba[i * 9 + 2] >> 2) & 0x3F) as i32 | ((ba[i * 9 + 3] << 6) as i32)
-                | (((ba[i * 9 + 4] & 0xF) << 14) as i32); // 6 8 4
-            y.coeffs[i*4+2] = ((ba[i * 9 + 4] >> 4) & 0x0F) as i32 | ((ba[i * 9 + 5] << 4) as i32) | ((ba[i*9+6] & 0x3F) << 12) as i32; // 4 8 6
-            y.coeffs[i*4+3] = ((ba[i * 9 + 6] >> 6) & 0x03) as i32 | ((ba[i * 9 + 7] << 2) as i32) | ((ba[i*9+8] & 0xFF) << 10) as i32; // 2 8 8
+                | ((ba[i * 9 + 1] as i32) << 8) | (((ba[i*9+2] & 0x03) as i32) << 16); // 8 8 2
+            y.coeffs[i*4+1] = ((ba[i * 9 + 2] >> 2) & 0x3F) as i32 | ((ba[i * 9 + 3] as i32) << 6)
+                | ((((ba[i * 9 + 4] & 0xF) as i32) << 14)); // 6 8 4
+            y.coeffs[i*4+2] = ((ba[i * 9 + 4] >> 4) & 0x0F) as i32 | ((ba[i * 9 + 5] as i32) << 4) | (((ba[i*9+6] & 0x3F) as i32) << 12); // 4 8 6
+            y.coeffs[i*4+3] = ((ba[i * 9 + 6] >> 6) & 0x03) as i32 | ((ba[i * 9 + 7] as i32) << 2) | (((ba[i*9+8] & 0xFF) as i32) << 10); // 2 8 8
 
-            y.coeffs[i*4] = gamma1 - y.coeffs[i];
-            y.coeffs[i*4+1] = gamma1 - y.coeffs[i+1];
-            y.coeffs[i*4+2] = gamma1 - y.coeffs[i+2];
-            y.coeffs[i*4+3] = gamma1 - y.coeffs[i+3];
+            y.coeffs[i*4] = gamma1 - y.coeffs[i*4];
+            y.coeffs[i*4+1] = gamma1 - y.coeffs[i*4+1];
+            y.coeffs[i*4+2] = gamma1 - y.coeffs[i*4+2];
+            y.coeffs[i*4+3] = gamma1 - y.coeffs[i*4+3];
 
             i += 1;
             if i*4 == 256 {
@@ -323,8 +323,8 @@ pub fn unpack_y(gamma1: i32, ba: Vec<u8>) -> Poly {
     // unpack 5 bytes -> 2 coeffs, 5*128=640 bytes for 1 poly
     else if gamma1 == 1<< 19 {
         loop {
-            y.coeffs[i*2] = ba[i*5] as i32 | (ba[i*5+1] << 8) as i32 | ((ba[i*5+2] & 0x0F) << 16) as i32; // 8 8 4
-            y.coeffs[i*2+1] = ((ba[i*5+2] >> 4) & 0x0F) as i32 | (ba[i*5+3] << 4) as i32 | (ba[i*5+4] << 12) as i32; // 4 8 8
+            y.coeffs[i*2] = ba[i*5] as i32 | ((ba[i*5+1] as i32) << 8)| (((ba[i*5+2] & 0x0F) as i32) << 16); // 8 8 4
+            y.coeffs[i*2+1] = ((ba[i*5+2] >> 4) & 0x0F) as i32 | ((ba[i*5+3] as i32) << 4) | ((ba[i*5+4] as i32) << 12); // 4 8 8
             
             y.coeffs[i*2] = gamma1 - y.coeffs[i];
             y.coeffs[i*2+1] = gamma1 - y.coeffs[i+1];
@@ -344,10 +344,10 @@ pub fn unpack_y(gamma1: i32, ba: Vec<u8>) -> Poly {
     y
 }
 
-pub fn pack_w1(w1: PolyVec, gamma1: i32, k: i32) -> Vec<u8> {
+pub fn pack_w1(w1: &PolyVec, gamma2: i32, k: i32) -> Vec<u8> {
     // coeff of w1 is in [0, 43], takes 6 bits, k*256*6/8
     // 4 coeffs into 3 bytes
-    if gamma1 == 95232 {
+    if gamma2 == 95232 {
         let mut buf = vec![0u8; 192*k as usize];
         for i in 0..w1.len {
             let mut j = 0;
@@ -356,8 +356,8 @@ pub fn pack_w1(w1: PolyVec, gamma1: i32, k: i32) -> Vec<u8> {
                 buf[i*192+j*3+1] = ((w1.vec[i].coeffs[j*4+1] >> 2) & 0x0F) as u8 | ((w1.vec[i].coeffs[j*4+2] & 0x0F) << 4) as u8; // 4 4
                 buf[i*192+j*3+2] = ((w1.vec[i].coeffs[j*4+2] >> 4) & 0x03) as u8 | (w1.vec[i].coeffs[j*4+3] << 2) as u8; // 2 6 
 
-                j += 4;
-                if j == 256 {
+                j += 1;
+                if j*4 == 256 {
                     break;
                 }
             }
@@ -366,14 +366,14 @@ pub fn pack_w1(w1: PolyVec, gamma1: i32, k: i32) -> Vec<u8> {
         buf
     }
      // coeff of w1 is in [0, 15], takes 4 bits, k*256*4/8
-    else if gamma1 == 261888 {
+    else if gamma2 == 261888 {
         let mut buf = vec![0u8; 128*k as usize];
         for i in 0..w1.len {
             let mut j = 0;
             loop {
                 buf[i*128+j] = w1.vec[i].coeffs[j*2] as u8 | (w1.vec[i].coeffs[j*2+1] << 4) as u8;
-                j += 2;
-                if j == 256 {
+                j += 1;
+                if j*2 == 256 {
                     break;
                 }
             }
@@ -433,12 +433,12 @@ fn pack_z(z: PolyVec, level: i32) -> Vec<u8> {
 }
 
 pub fn pack_delta(cp: [u8; 32], z: PolyVec, h: PolyVec, level: i32) -> Vec<u8>{
-    let buf = cp.to_vec();
+    let mut buf = cp.to_vec();
     buf.append(&mut pack_z(z, level));
     for i in 0..h.len {
         let mut j = 0;
         loop {
-            let a = 0u8;
+            let mut a = 0u8;
             for k in j..j+8 {
                 a = a | (h.vec[i].coeffs[k] << (k-j)) as u8;
             }

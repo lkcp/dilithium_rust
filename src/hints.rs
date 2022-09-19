@@ -22,7 +22,7 @@ pub fn power_2_round_q(t: PolyVec, d: u8) -> (PolyVec, PolyVec) {
 
 fn decompose(r: i32, gamma2: i32) -> (i32, i32)
 {
-    let mut r1 = (r+17) >> 7;
+    let mut r1 = (r+127) >> 7;
     if gamma2 == 95232 {
         r1 = (r1*1025 + (1<<21)) >> 22;
         r1 &= 15;
