@@ -300,7 +300,7 @@ fn unpack_t0(k: i32, ba: Vec<u8>) -> PolyVec {
             t0.vec[i].coeffs[j*8] = (ba[i as usize * 416 + j * 13] as i32)
                 | ((ba[i as usize * 416 + j * 13 + 1] as i32 & 0x1F) << 8); // 8 5
             t0.vec[i].coeffs[j*8+1] = ((ba[i as usize * 416 + j * 13 + 1] as i32 >> 5) & 0x07)
-                | (ba[i as usize * 416 + j * 13 + 2] << 3) as i32
+                | ((ba[i as usize * 416 + j * 13 + 2] as i32) << 3)
                 | ((ba[i as usize * 416 + j * 13 + 3] as i32 & 0x03) << 11); // 3 8 2
             t0.vec[i].coeffs[j*8+2] = ((ba[i as usize * 416 + j * 13 + 3] as i32 >> 2) & 0x3F)
                 | ((ba[i as usize * 416 + j * 13 + 4] as i32 & 0x7F) << 6); // 6 7
@@ -318,14 +318,14 @@ fn unpack_t0(k: i32, ba: Vec<u8>) -> PolyVec {
             t0.vec[i].coeffs[j*8+7] = ((ba[i as usize * 416 + j * 13 + 11] as i32 >> 3) & 0x1F)
                 | ((ba[i as usize * 416 + j * 13 + 12] as i32 & 0xFF) << 5); // 5 8
 
-            t0.vec[i].coeffs[j*8] = (1 << (d-1)) - t0.vec[i].coeffs[j];
-            t0.vec[i].coeffs[j*8+1] = (1 << (d-1)) - t0.vec[i].coeffs[j+1];
-            t0.vec[i].coeffs[j*8+2] = (1 << (d-1)) - t0.vec[i].coeffs[j+2];
-            t0.vec[i].coeffs[j*8+3] = (1 << (d-1)) - t0.vec[i].coeffs[j+3];
-            t0.vec[i].coeffs[j*8+4] = (1 << (d-1)) - t0.vec[i].coeffs[j+4];
-            t0.vec[i].coeffs[j*8+5] = (1 << (d-1)) - t0.vec[i].coeffs[j+5];
-            t0.vec[i].coeffs[j*8+6] = (1 << (d-1)) - t0.vec[i].coeffs[j+6];
-            t0.vec[i].coeffs[j*8+7] = (1 << (d-1)) - t0.vec[i].coeffs[j+7];
+            t0.vec[i].coeffs[j*8] = (1 << (d-1)) - t0.vec[i].coeffs[j*8];
+            t0.vec[i].coeffs[j*8+1] = (1 << (d-1)) - t0.vec[i].coeffs[j*8+1];
+            t0.vec[i].coeffs[j*8+2] = (1 << (d-1)) - t0.vec[i].coeffs[j*8+2];
+            t0.vec[i].coeffs[j*8+3] = (1 << (d-1)) - t0.vec[i].coeffs[j*8+3];
+            t0.vec[i].coeffs[j*8+4] = (1 << (d-1)) - t0.vec[i].coeffs[j*8+4];
+            t0.vec[i].coeffs[j*8+5] = (1 << (d-1)) - t0.vec[i].coeffs[j*8+5];
+            t0.vec[i].coeffs[j*8+6] = (1 << (d-1)) - t0.vec[i].coeffs[j*8+6];
+            t0.vec[i].coeffs[j*8+7] = (1 << (d-1)) - t0.vec[i].coeffs[j*8+7];
 
             j += 1;
             if j*8 == 256 {
@@ -438,33 +438,41 @@ fn pack_z(z: PolyVec, level: i32) -> Vec<u8> {
         for i in 0..z.len {
             let mut j = 0;
             loop {
-                buf[i*576+j*9] = z.vec[i].coeffs[j*4] as u8; // 8
-                buf[i*576+j*9+1] = (z.vec[i].coeffs[j*4] >> 8) as u8; // 8
-                buf[i*576+j*9+2] = ((z.vec[i].coeffs[j*4] >> 16) & 0x03) as u8 | ((z.vec[i].coeffs[j*4+1] & 0x3F) << 2) as u8; // 2 6
-                buf[i*576+j*9+3] = (z.vec[i].coeffs[j*4+1] >> 6) as u8; // 8
-                buf[i*576+j*9+4] = ((z.vec[i].coeffs[j*4+1] >> 14) & 0x0F) as u8 | ((z.vec[i].coeffs[j*4+2] & 0x0F) << 4) as u8; // 4 4
-                buf[i*576+j*9+5] = (z.vec[i].coeffs[j*4+2] >> 4) as u8; // 8
-                buf[i*576+j*9+6] = ((z.vec[i].coeffs[j*4+2] >> 12) & 0x3F) as u8 | ((z.vec[i].coeffs[j*4+3] & 0x03) << 6) as u8; // 6 2
-                buf[i*576+j*9+7] = (z.vec[i].coeffs[j*4+3] >> 2) as u8; // 8
-                buf[i*576+j*9+8] = (z.vec[i].coeffs[j*4+3] >> 10) as u8; // 8
+                let a0 = (1 << 17) - z.vec[i].coeffs[j*4];
+                let a1 = (1 << 17) - z.vec[i].coeffs[j*4+1];
+                let a2 = (1 << 17) - z.vec[i].coeffs[j*4+2];
+                let a3 = (1 << 17) - z.vec[i].coeffs[j*4+3];
+                
+                buf[i*576+j*9] = a0 as u8; // 8
+                buf[i*576+j*9+1] = (a0 >> 8) as u8; // 8
+                buf[i*576+j*9+2] = ((a0 >> 16) & 0x03) as u8 | ((a1 & 0x3F) << 2) as u8; // 2 6
+                buf[i*576+j*9+3] = (a1 >> 6) as u8; // 8
+                buf[i*576+j*9+4] = ((a1 >> 14) & 0x0F) as u8 | ((a2 & 0x0F) << 4) as u8; // 4 4
+                buf[i*576+j*9+5] = (a2 >> 4) as u8; // 8
+                buf[i*576+j*9+6] = ((a2 >> 12) & 0x3F) as u8 | ((a3 & 0x03) << 6) as u8; // 6 2
+                buf[i*576+j*9+7] = (a3>> 2) as u8; // 8
+                buf[i*576+j*9+8] = (a3 >> 10) as u8; // 8
                 j += 1;
                 if j*4 == 256 {break;}
             }
         }
         buf
     }
-    // coeff of z is in [-2^19-1, 2^19], takes 18 bits, 256*20/8*l, l=5
+    // coeff of z is in [-2^19-1, 2^19], takes 20 bits, 256*20/8*l, l=5
     // pack 2 coeffs into 5 bytes
     else if level == 3 || level == 5{
         let mut buf = vec![0u8; 640*z.len as usize];
         for i in 0..z.len {
             let mut j = 0;
             loop {
-                buf[i*640+j*5] = z.vec[i].coeffs[j*2] as u8; // 8
-                buf[i*640+j*5+1] = (z.vec[i].coeffs[j*2] >> 8) as u8; // 8
-                buf[i*640+j*5+2] = ((z.vec[i].coeffs[j*2] >> 16) & 0x0F) as u8 | ((z.vec[i].coeffs[j*2+1] & 0x0F) << 4) as u8; // 4 4
-                buf[i*640+j*5+3] = (z.vec[i].coeffs[j*2+1] >> 4) as u8; // 8
-                buf[i*640+j*5+4] = (z.vec[i].coeffs[j*2+1] >> 12) as u8; // 8
+                let a0 = (1 << 19) - z.vec[i].coeffs[j*2];
+                let a1 = (1 << 19) - z.vec[i].coeffs[j*2+1];
+
+                buf[i*640+j*5] = a0 as u8; // 8
+                buf[i*640+j*5+1] = (a0 >> 8) as u8; // 8
+                buf[i*640+j*5+2] = ((a0 >> 16) & 0x0F) as u8 | ((a1 & 0x0F) << 4) as u8; // 4 4
+                buf[i*640+j*5+3] = (a1>> 4) as u8; // 8
+                buf[i*640+j*5+4] = (a1 >> 12) as u8; // 8
                 j += 1;
                 if j*2 == 256 {break;}
             }
@@ -477,19 +485,18 @@ fn pack_z(z: PolyVec, level: i32) -> Vec<u8> {
     }
 }
 
-pub fn pack_delta(cp: [u8; 32], z: PolyVec, h: PolyVec, level: i32) -> Vec<u8>{
+pub fn pack_delta(cp: [u8; 32], z: PolyVec, h: PolyVec, level: i32, omega: i32) -> Vec<u8>{
     let mut buf = cp.to_vec();
     buf.append(&mut pack_z(z, level));
+    let mut cnt = vec![0u8; h.len];
     for i in 0..h.len {
-        let mut j = 0;
-        loop {
-            let mut a = 0u8;
-            for k in j..j+8 {
-                a = a | (h.vec[i].coeffs[k] << (k-j)) as u8;
+        for j in 0..256 {
+            if h.vec[i].coeffs[j] == 1 {
+                buf.push(j as u8);
+                cnt[i] += 1;
             }
-            buf.push(a);
-            j += 8;
         }
     }
+    buf.append(&mut cnt);
     buf
 }

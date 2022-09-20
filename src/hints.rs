@@ -64,6 +64,16 @@ pub fn make_hints_pv(r: PolyVec, z: PolyVec, gamma2: i32) -> PolyVec {
     h
 }
 
+pub fn count_h(h: &PolyVec) -> i32 {
+    let mut s = 0;
+    for i in 0..h.vec.len() {
+        for j in 0..h.vec[i].coeffs.len() {
+            s += h.vec[i].coeffs[j];
+        }
+    }
+    s
+}
+
 pub fn use_hints(h:i32, r:i32, gamma2: i32) -> i32 {
     let (r1, r0) = decompose(r, gamma2);
     if h == 0 {return r1;}

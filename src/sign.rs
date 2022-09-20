@@ -2,7 +2,7 @@ mod sign {
 
     use std::fs::read;
 
-    use crate::hints::{power_2_round_q, high_bits, low_bits, make_hints, make_hints_pv};
+    use crate::hints::{power_2_round_q, high_bits, low_bits, make_hints, make_hints_pv, count_h};
     use crate::pack::{pack_pk, pack_sk, unpack_pk, unpack_sk, pack_w1, pack_delta};
     use crate::params::{get_params, d, get_params_sign};
     use crate::polyvec::polyvec::PolyVec;
@@ -86,9 +86,13 @@ mod sign {
 
     fn sign(sk: Vec<u8>, m: Vec<u8>) -> Vec<u8> {
         const level: i32 = 2;
-        let (k, l, eta, gamma1, gamma2, tau) = get_params_sign(2);
+        let (k, l, eta, gamma1, gamma2, tau, omega) = get_params_sign(2);
 
-        let (rho, K, tr, mut s1, mut s2, t0) = unpack_sk(sk, eta, k, l);
+        let (rho, K, tr, mut s1, mut s2, mut t0) = unpack_sk(sk, eta, k, l);
+
+        s1.ntt();
+        s2.ntt();
+        t0.ntt();
 
 
         // use SHAKE256 to generate a random polynomial A (k*l polynomials)
@@ -152,14 +156,12 @@ mod sign {
             reader.read(&mut cp);
             let mut c = sample_in_ball(cp, tau);
             c.ntt();
-            let mut s1_hat = s1.copy();
-            let mut s2_hat = s2.copy();
-            s1_hat.ntt();
-            s2_hat.ntt();
+
+            
             
             //  Compute z, reject if it reveals secret
             for i in 0..l as usize {
-                z.vec[i] = c.point_wise_mul(&s1_hat.vec[i]);
+                z.vec[i] = c.point_wise_mul(&s1.vec[i]);
                 z.vec[i].intt(); 
                 z.vec[i] = z.vec[i].add(&y.vec[i]);
             }
@@ -169,24 +171,26 @@ mod sign {
             let w0 = w.low_bits(gamma2);
             let mut pv0 = PolyVec::new(w0.len); // record w - cs2
             for i in 0..k as usize {
-                pv0.vec[i] = c.point_wise_mul(&s2_hat.vec[i]);
+                pv0.vec[i] = c.point_wise_mul(&s2.vec[i]);
                 pv0.vec[i].intt();
                 pv0.vec[i] = w0.vec[i].sub(&pv0.vec[i]);
             }
             // let r0 = pv0.low_bits(gamma2);
-            let tt = pv0.inf_norm();
-            if tt >= (gamma2-tau*eta) {continue;}
+            if pv0.inf_norm() >= (gamma2-tau*eta) {continue;}
 
+            // Compute hints for w1
             let mut pv1 = PolyVec::new(k as usize);
             for i in 0..k as usize {
                 pv1.vec[i] = c.point_wise_mul(&t0.vec[i]);
                 pv1.vec[i].intt();
             }
 
-            h = make_hints_pv(pv1.neg(), pv1.add(&pv0), gamma2);
+            h = make_hints_pv(pv1.add(&pv0), pv1.neg(), gamma2);
             if pv1.inf_norm() >= gamma2 {continue;}
+            let n = count_h(&h);
+            if n > omega {continue;}
             pass = true;
-            delta = pack_delta(cp, z, h, level);
+            delta = pack_delta(cp, z, h, level, omega);
         }
 
         delta
