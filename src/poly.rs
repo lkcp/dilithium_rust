@@ -69,6 +69,20 @@ impl Poly {
         }
         c
     }
+
+    // every coeffs left shift by d bits
+    // will not be used then, so in place
+    pub fn lshift(&mut self, d: i32) {
+        let mut i: usize = 0;
+        loop {
+            self.coeffs[i] = self.coeffs[i] << d;
+            i += 1;
+            if i == 256 {
+                break;
+            }
+        }
+    }
+
 }
 
 impl Poly {

@@ -5,6 +5,20 @@ use crate::polyvec::polyvec::PolyVec;
 use sha3::digest::{ExtendableOutput, Update, XofReader};
 use sha3::{Shake256, Shake128};
 
+pub fn expand_A(rho: [u8; 32], k:i32, l: i32) -> Vec<PolyVec> {
+    let mut A = Vec::new();
+    for i in 0..k as usize{
+        A.push(PolyVec::new(l as usize));
+    }
+    for i in 0..k as usize {
+        for j in 0..l as usize {
+            A[i].vec[j] = crate::sample::reject_sample(rho, i as u8, j as u8);
+        }
+    }
+    A
+}
+
+
 // generate a polynomial with coefficients in Z_q
 pub fn reject_sample(seed: [u8; 32], i: u8, j: u8) -> Poly {
     let mut p = Poly::new();

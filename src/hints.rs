@@ -102,3 +102,14 @@ pub fn use_hints(h:i32, r:i32, gamma2: i32) -> i32 {
         panic!("gamma2 not supported");
     }
 }
+
+// use hints for every coeff in a PolyVec
+pub fn use_hints_pv(h: &PolyVec, r: &PolyVec, gamma2: i32) -> PolyVec {
+    let mut r1 = PolyVec::new(r.vec.len());
+    for i in 0..r.vec.len() {
+        for j in 0..r.vec[i].coeffs.len() {
+            r1.vec[i].coeffs[j] = use_hints(h.vec[i].coeffs[j], r.vec[i].coeffs[j], gamma2);
+        }
+    }
+    r1
+}

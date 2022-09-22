@@ -1,4 +1,3 @@
-use std::sync::BarrierWaitResult;
 use std::vec;
 
 use crate::params::d;
@@ -10,58 +9,71 @@ use crate::polyvec::polyvec::PolyVec;
 pub fn pack_pk(t1: &PolyVec, k: u8, rho: &[u8; 32]) -> Vec<u8> {
     let mut pk = Vec::new();
     pk.append(&mut Vec::from(*rho));
-    for i in 0..t1.vec.len() {
-        let mut j = 0;
-        loop {
-            // pack 4 coeffs into 5 bytes
-            pk.push((t1.vec[i].coeffs[j] & 0xFF) as u8); //8
-            pk.push(
-                (((t1.vec[i].coeffs[j] >> 8) & 0x03) | ((t1.vec[i].coeffs[j + 1]) & 0x3F) << 2)
-                    as u8,
-            ); // 2 6
-            pk.push(
-                ((((t1.vec[i].coeffs[j + 1]) >> 6) & 0x0F)
-                    | (((t1.vec[i].coeffs[j + 2]) & 0x0F) << 4)) as u8,
-            ); // 4 4
-            pk.push(
-                (((t1.vec[i].coeffs[j + 2] >> 4) & 0x3F) | ((t1.vec[i].coeffs[j + 3] & 0x03) << 6))
-                    as u8,
-            ); // 6 2
-            pk.push(((t1.vec[i].coeffs[j + 3] >> 2) & 0xFF) as u8); // 8
-            j += 4;
-            if j == 256 {
-                break;
-            }
-        }
-    }
+    pk.append(&mut pack_t1(t1));
     pk
 }
 
 // unpack pk into t1 and rho
 // l = 4/5/7
 // unpack 5 bytes into 4 coeffs, 320 bytes into 256 coeffs(1 poly), total k polys
-pub fn unpack_pk(pk: Vec<u8>, l: i32) -> ([u8; 32], PolyVec) {
+pub fn unpack_pk(pk: Vec<u8>) -> ([u8; 32], Vec<u8>) {
     let rho = pk[0..32].try_into().unwrap();
-    let mut t1 = PolyVec::new(l as usize);
-    for i in 0..l as usize {
+    let mut t1 = pk[32..].to_vec();
+    
+
+    (rho, t1)
+}
+
+pub fn pack_t1(t1: &PolyVec) -> Vec<u8> {
+    let mut buf = Vec::new();
+    for i in 0..t1.vec.len() {
         let mut j = 0;
         loop {
-            t1.vec[i].coeffs[j*4] = (pk[32 + i * 320 + j * 5] as i32)
-                | ((pk[32 + i * 320 + j * 5 + 1] as u16 & 0x03) << 8) as i32; // 8 2
-            t1.vec[i].coeffs[j*4 + 1] = ((pk[32 + i * 320 + j * 5 + 1] >> 2) & 0x3F) as i32
-                | ((pk[32 + i * 320 + j * 5 + 2] as u16 & 0x0F) << 6) as i32; // 6 4
-            t1.vec[i].coeffs[j*4 + 2] = ((pk[32 + i * 320 + j * 5 + 2] >> 4) & 0x0F) as i32
-                | ((pk[32 + i * 320 + j * 5 + 3] as u16 & 0x3F) << 4) as i32; // 4 6
-            t1.vec[i].coeffs[j*4 + 3] = ((pk[32 + i * 320 + j * 5 + 3] >> 6) & 0x03) as i32
-                | ((pk[32 + i * 320 + j * 5 + 4] as u16) << 2) as i32; // 2 8
+            // pack 4 coeffs into 5 bytes
+            buf.push((t1.vec[i].coeffs[j] & 0xFF) as u8); //8
+            buf.push(
+                (((t1.vec[i].coeffs[j] >> 8) & 0x03) | ((t1.vec[i].coeffs[j + 1]) & 0x3F) << 2)
+                    as u8,
+            ); // 2 6
+            buf.push(
+                ((((t1.vec[i].coeffs[j + 1]) >> 6) & 0x0F)
+                    | (((t1.vec[i].coeffs[j + 2]) & 0x0F) << 4)) as u8,
+            ); // 4 4
+            buf.push(
+                (((t1.vec[i].coeffs[j + 2] >> 4) & 0x3F) | ((t1.vec[i].coeffs[j + 3] & 0x03) << 6))
+                    as u8,
+            ); // 6 2
+           buf.push(((t1.vec[i].coeffs[j + 3] >> 2) & 0xFF) as u8); // 8
+            j += 4;
+            if j == 256 {
+                break;
+            }
+        }
+    }
+    buf
+}
+
+// every 5 bytes will be unpacked into 4 coeffs
+pub fn unpack_t1(t1_ba: Vec<u8>, k: i32) -> PolyVec {
+    let mut t1 = PolyVec::new(k as usize);
+    for i in 0..k as usize {
+        let mut j = 0;
+        loop {
+            t1.vec[i].coeffs[j*4] = (t1_ba[i * 320 + j * 5] as i32)
+                | ((t1_ba[i * 320 + j * 5 + 1] as u16 & 0x03) << 8) as i32; // 8 2
+            t1.vec[i].coeffs[j*4 + 1] = ((t1_ba[i * 320 + j * 5 + 1] >> 2) & 0x3F) as i32
+                | ((t1_ba[i * 320 + j * 5 + 2] as u16 & 0x0F) << 6) as i32; // 6 4
+            t1.vec[i].coeffs[j*4 + 2] = ((t1_ba[i * 320 + j * 5 + 2] >> 4) & 0x0F) as i32
+                | ((t1_ba[i * 320 + j * 5 + 3] as u16 & 0x3F) << 4) as i32; // 4 6
+            t1.vec[i].coeffs[j*4 + 3] = ((t1_ba[i * 320 + j * 5 + 3] >> 6) & 0x03) as i32
+                | ((t1_ba[i * 320 + j * 5 + 4] as u16) << 2) as i32; // 2 8
             j += 1;
             if j*4 == 256 {
                 break;
             }
         }
     }
-
-    (rho, t1)
+    t1
 }
 
 pub fn pack_sk(
@@ -485,11 +497,72 @@ fn pack_z(z: PolyVec, level: i32) -> Vec<u8> {
     }
 }
 
+fn unpack_z(z_ba: Vec<u8>, level: i32) -> PolyVec {
+    if level == 2 {
+        let mut z = PolyVec::new(4);
+        for i in 0..z.len {
+            let mut j = 0;
+            loop {
+                let a0 = z_ba[i*576+j*9] as i32 | ((z_ba[i*576+j*9+1] as i32) << 8) | (((z_ba[i*576+j*9+2] & 0x03) as i32) << 16);
+                let a1 = ((z_ba[i*576+j*9+2] >> 2) as i32 | (z_ba[i*576+j*9+3] as i32) << 6 | ((z_ba[i*576+j*9+4] & 0x0F) as i32) << 14);
+                let a2 = ((z_ba[i*576+j*9+4] >> 4) as i32 | (z_ba[i*576+j*9+5] as i32) << 4 | ((z_ba[i*576+j*9+6] & 0x3F) as i32) << 12);
+                let a3 = ((z_ba[i*576+j*9+6] >> 6) as i32 | (z_ba[i*576+j*9+7] as i32) << 2 | ((z_ba[i*576+j*9+8] as i32) << 10));
+                z.vec[i].coeffs[j*4] = (1 << 17) - a0;
+                z.vec[i].coeffs[j*4+1] = (1 << 17) - a1;
+                z.vec[i].coeffs[j*4+2] = (1 << 17) - a2;
+                z.vec[i].coeffs[j*4+3] = (1 << 17) - a3;
+                j += 1;
+                if j*4 == 256 {break;}
+            }
+        }
+        z
+    }
+
+    else if level == 3 {
+        let mut z = PolyVec::new(5);
+        for i in 0..z.len {
+            let mut j = 0;
+            loop {
+                let a0 = z_ba[i*640+j*5] as i32 | ((z_ba[i*640+j*5+1] as i32) << 8) | (((z_ba[i*640+j*5+2] & 0x0F) as i32) << 16);
+                let a1 = ((z_ba[i*640+j*5+2] >> 4) as i32 | (z_ba[i*640+j*5+3] as i32) << 4 | ((z_ba[i*640+j*5+4] as i32) << 12));
+                z.vec[i].coeffs[j*2] = (1 << 19) - a0;
+                z.vec[i].coeffs[j*2+1] = (1 << 19) - a1;
+                j += 1;
+                if j*2 == 256 {break;}
+            }
+        }
+        z
+    }
+
+    else if level == 5 {
+        let mut z = PolyVec::new(7);
+        for i in 0..z.len {
+            let mut j = 0;
+            loop {
+                let a0 = z_ba[i*640+j*5] as i32 | ((z_ba[i*640+j*5+1] as i32) << 8) | (((z_ba[i*640+j*5+2] & 0x0F) as i32) << 16);
+                let a1 = ((z_ba[i*640+j*5+2] >> 4) as i32 | (z_ba[i*640+j*5+3] as i32) << 4 | ((z_ba[i*640+j*5+4] as i32) << 12));
+                z.vec[i].coeffs[j*2] = (1 << 19) - a0;
+                z.vec[i].coeffs[j*2+1] = (1 << 19) - a1;
+                j += 1;
+                if j*2 == 256 {break;}
+            }
+        }
+        z
+    }
+
+    else {
+        panic!("level is not 2, 3, 5");
+    }
+    
+}
+
+// h has k polynomials, each contains no more than tau 1's, pack these locations of 1, and record how much 1's in each polynomial at the end with h.len bytes
 pub fn pack_delta(cp: [u8; 32], z: PolyVec, h: PolyVec, level: i32, omega: i32) -> Vec<u8>{
     let mut buf = cp.to_vec();
     buf.append(&mut pack_z(z, level));
     let mut cnt = vec![0u8; h.len];
     for i in 0..h.len {
+        if i > 0 {cnt[i] = cnt[i-1];}
         for j in 0..256 {
             if h.vec[i].coeffs[j] == 1 {
                 buf.push(j as u8);
@@ -497,6 +570,61 @@ pub fn pack_delta(cp: [u8; 32], z: PolyVec, h: PolyVec, level: i32, omega: i32) 
             }
         }
     }
+    buf.append(vec![0u8; (omega-cnt[cnt.len()-1] as i32) as usize].as_mut());
     buf.append(&mut cnt);
     buf
+}
+
+
+pub fn unpack_delta(delta: Vec<u8>, k:i32, l:i32, omega: i32) -> ([u8;32], PolyVec, PolyVec) {
+    let mut cp = [0u8; 32];
+    let mut z = PolyVec::new(l as usize);
+    let mut h = PolyVec::new(k as usize);
+
+    let mut buf = delta;
+    cp.copy_from_slice(&buf[0..32]);
+    if l == 4 {
+        z = unpack_z(buf[32..32+576*4].to_vec(), 2);
+        buf = buf[32+576*4..].to_vec();
+        let cnt = buf[omega as usize..omega as usize+k as usize].to_vec();
+        let mut c = 0;
+        for i in 0..cnt.len() {
+            for j in c..cnt[i] {
+                h.vec[i].coeffs[buf[j as usize] as usize] = 1;
+            }
+            c = cnt[i];
+        }
+    }
+
+    else if l == 5 {
+        z = unpack_z(buf[32..32+640*5].to_vec(), 2);
+        buf = buf[32+640*5..].to_vec();
+        let cnt = buf[omega as usize..omega as usize+k as usize].to_vec();
+        let mut c = 0;
+        for i in 0..cnt.len() {
+            for j in c..cnt[i] {
+                h.vec[i].coeffs[buf[j as usize] as usize] = 1;
+            }
+            c = cnt[i];
+        }
+    }
+
+    else if l == 7 {
+        z = unpack_z(buf[32..32+640*7].to_vec(), 2);
+        buf = buf[32+640*7..].to_vec();
+        let cnt = buf[omega as usize..omega as usize+k as usize].to_vec();
+        let mut c = 0;
+        for i in 0..cnt.len() {
+            for j in c..cnt[i] {
+                h.vec[i].coeffs[buf[j as usize] as usize] = 1;
+            }
+            c = cnt[i];
+        }
+    }
+
+    else {
+        panic!("l is not 4, 5, 7");
+    }
+
+    (cp, z, h)
 }

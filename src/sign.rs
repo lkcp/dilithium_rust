@@ -2,11 +2,11 @@ mod sign {
 
     use std::fs::read;
 
-    use crate::hints::{power_2_round_q, high_bits, low_bits, make_hints, make_hints_pv, count_h};
-    use crate::pack::{pack_pk, pack_sk, unpack_pk, unpack_sk, pack_w1, pack_delta};
+    use crate::hints::{power_2_round_q, high_bits, low_bits, make_hints, make_hints_pv, count_h, use_hints, use_hints_pv};
+    use crate::pack::{pack_pk, pack_sk, unpack_pk, unpack_sk, pack_w1, pack_delta, unpack_delta, unpack_t1};
     use crate::params::{get_params, d, get_params_sign};
     use crate::polyvec::polyvec::PolyVec;
-    use crate::sample::{expand_mask, sample_in_ball};
+    use crate::sample::{expand_mask, sample_in_ball, expand_A};
     use sha3::{
         digest::{ExtendableOutput, Update, XofReader},
         Shake256,
@@ -29,20 +29,11 @@ mod sign {
         reader.read(&mut K);
 
         // use SHAKE256 to generate a random polynomial A (k*l polynomials)
-        let mut A = Vec::new();
-        for i in 0..k {
-            A.push(PolyVec::new(l as usize));
-        }
+        let  mut A = expand_A(rho, k, l);
 
         let mut s1 = PolyVec::new(l as usize);
         let mut s2 = PolyVec::new(k as usize);
 
-        // genA
-        for i in 0..k as usize {
-            for j in 0..l as usize {
-                A[i].vec[j] = crate::sample::reject_sample(rho, i as u8, j as u8);
-            }
-        }
 
         // gen s1, s2
         for i in 0..(k+l) as usize {
@@ -96,15 +87,7 @@ mod sign {
 
 
         // use SHAKE256 to generate a random polynomial A (k*l polynomials)
-        let mut A = Vec::new();
-        for i in 0..k {
-            A.push(PolyVec::new(l as usize));
-        }
-        for i in 0..k as usize {
-            for j in 0..l as usize {
-                A[i].vec[j] = crate::sample::reject_sample(rho, i as u8, j as u8);
-            }
-        }
+        let mut A = expand_A(rho, k, l);
 
         let mut mu = [0u8; 64];
         let mut rhoprime = [0u8; 64];
@@ -194,6 +177,48 @@ mod sign {
         }
 
         delta
+    }
+
+    fn verify(delta: Vec<u8>, pk: Vec<u8>, m: Vec<u8>) -> bool {
+        let (k, l, eta, gamma1, gamma2, tau, omega) = get_params_sign(2);
+        let (rho, t1_ba) = unpack_pk(pk);
+        
+        let mut A = expand_A(rho, k, l);
+        let mut H = Shake256::default();
+        H.update(&rho);
+        H.update(&t1_ba);
+        let mut reader = H.finalize_xof();
+        let mut tr = [0u8;32];
+        reader.read(&mut tr);
+        H = Shake256::default();
+        H.update(&tr);
+        H.update(&m);
+        reader = H.finalize_xof();
+        let mut mu = [0u8;64];
+        reader.read(&mut mu);
+        let (cp, z, h) = unpack_delta(delta, l, k, omega);
+        let mut c = sample_in_ball(cp, tau);
+        c.ntt();
+        let mut z_hat = z.copy();
+        z_hat.ntt();
+        let mut t1 = unpack_t1(t1_ba, k);
+        t1.left_shift(d as i32);
+        t1.ntt();
+        for i in 0..t1.len {
+            t1.vec[i] = c.point_wise_mul(&t1.vec[i]);
+            t1.vec[i] = t1.vec[i].neg();
+            t1.vec[i] = t1.vec[i].add(&(A[i].pointwise_acc(&z_hat)));
+            t1.vec[i].intt();
+        }
+        t1.caddq();
+        let w1 = use_hints_pv(&h, &t1, gamma2);
+        H = Shake256::default();
+        H.update(&mu);
+        H.update(&pack_w1(&w1, gamma2, k));
+        reader = H.finalize_xof();
+        let mut cp2 = [0u8;32];
+        reader.read(&mut cp2);
+        (z.inf_norm() < gamma1-tau*eta) && (cp2 == cp) && (count_h(&h) <= omega)
     }
 
     #[cfg(test)]
@@ -371,6 +396,17 @@ mod sign {
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xf, 0x1b, 0x2d, 0x40];
 
                 assert_eq!(sig, sig_ref);
+        }
+    
+        #[test]
+        fn test_verify() {
+            use super::*;
+            let seed = [0x9f, 0xd9, 0xaa, 0xfd, 0x8f, 0xc9, 0x01, 0xf5, 0x00, 0x85, 0xde, 0x82, 0x68, 0xc2, 0xd6, 0x30, 0x26, 0xdd, 0x8e, 0x35, 0xf8, 0x9d, 0xd1, 0xe2, 0xbc, 0x15, 0x1d, 0x7d, 0x20, 0xd0, 0x97, 0x96];
+            let (pk, sk) = key_pair(seed, 2);
+            let msg = [0xea, 0xcd, 0xc0, 0x82, 0x36, 0x1d, 0xe7, 0x10, 0x1b, 0x69, 0x6e, 0xe1, 0xa0, 0xa4, 0xf3, 0x51, 0x4a, 0x65,
+            0xb6, 0xcf, 0xb3, 0x42, 0xb, 0xa4, 0x6a, 0x8d, 0x41, 0x10, 0x2f, 0xdf, 0xa2, 0x47];
+            let sig = sign(sk, msg.to_vec());
+            assert!(verify(sig, pk, msg.to_vec()));
         }
     }
 }

@@ -119,6 +119,14 @@ pub mod polyvec {
             }
             max
         }
+
+        // every poly is left shifted by d bits
+        pub fn left_shift(&mut self, d: i32) {
+            for i in 0..self.len {
+                self.vec[i].lshift(d);
+            }
+        }
+
     }
 
     #[cfg(test)]
