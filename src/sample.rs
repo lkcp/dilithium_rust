@@ -7,7 +7,7 @@ use sha3::{Shake256, Shake128};
 
 pub fn expand_A(rho: [u8; 32], k:i32, l: i32) -> Vec<PolyVec> {
     let mut A = Vec::new();
-    for i in 0..k as usize{
+    for _i in 0..k as usize{
         A.push(PolyVec::new(l as usize));
     }
     for i in 0..k as usize {

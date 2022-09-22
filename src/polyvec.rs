@@ -21,11 +21,7 @@ pub mod polyvec {
         pub fn get(&self, i: usize) -> &Poly {
             &self.vec[i]
         }
-
-        pub fn get_mut(&mut self, i: usize) -> &mut Poly {
-            &mut self.vec[i]
-        }
-
+        
         pub fn set(&mut self, i: usize, poly: Poly) {
             self.vec[i] = poly;
         }

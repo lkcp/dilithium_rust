@@ -39,13 +39,13 @@ fn decompose(r: i32, gamma2: i32) -> (i32, i32)
 
 pub fn high_bits(r:i32, gamma2: i32) -> i32
 {
-    let (r1, r0) = decompose(r, gamma2);
+    let (r1, _r0) = decompose(r, gamma2);
     r1
 }
 
 pub fn low_bits(r: i32, gamma2: i32) -> i32
 {
-    let (r1, r0) = decompose(r, gamma2);
+    let (_r1, r0) = decompose(r, gamma2);
     r0
 }
 
