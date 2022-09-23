@@ -94,12 +94,12 @@ pub fn expand_mask(rhoprime: [u8; 64], nonce: i32, i: i32, gamma1: i32) -> Poly 
     if gamma1 == 1 << 17 {
         let mut buf = [0u8; 576];
         reader.read(&mut buf);
-        y = unpack_y(gamma1, (&buf).to_vec());
+        y = unpack_y(gamma1, &(&buf).to_vec());
     }
     else if gamma1 == 1 << 19 {
         let mut buf = [0u8; 640];
         reader.read(&mut buf);
-        y = unpack_y(gamma1, (&buf).to_vec());
+        y = unpack_y(gamma1, &(&buf).to_vec());
     } 
     else {
         panic!("gamma1 not supported");

@@ -13,12 +13,12 @@ use sha3::{
     Shake256,
 };
 
-fn key_pair(seed: [u8; 32], security_level: u8) -> (Vec<u8>, Vec<u8>) {
+pub fn key_pair(seed: &[u8; 32], security_level: u8) -> (Vec<u8>, Vec<u8>) {
     let (k, l, eta) = get_params(security_level);
 
     // use SHAKE256 to generaterho, rho' and K, whose length are 32, 64 and 32 bytes respectively
     let mut H = Shake256::default();
-    H.update(&seed);
+    H.update(seed);
     let mut reader = H.finalize_xof();
     let mut rho = [0u8; 32];
     let mut rhoprime = [0u8; 64];
@@ -43,13 +43,11 @@ fn key_pair(seed: [u8; 32], security_level: u8) -> (Vec<u8>, Vec<u8>) {
     }
 
     // calculate t = NTT^-1(A_hat * NTT(s1))+s2
-    let mut s1_hat = s1.copy();
-    s1_hat.ntt();
+    let s1_hat = s1.ntt();
     let mut t = PolyVec::new(l as usize);
     for i in 0..k as usize {
-        t.vec[i] = A[i].pointwise_acc(&s1_hat);
+        t.vec[i] = A[i].pointwise_acc(&s1_hat).intt();
     }
-    t.intt();
     t = t.add(&s2);
 
     // calculate t1 and t0
@@ -72,15 +70,15 @@ fn key_pair(seed: [u8; 32], security_level: u8) -> (Vec<u8>, Vec<u8>) {
     (pk, sk)
 }
 
-fn sign(sk: Vec<u8>, m: Vec<u8>) -> Vec<u8> {
+pub fn sign(sk: &Vec<u8>, m: &Vec<u8>) -> Vec<u8> {
     const level: i32 = 2;
     let (k, l, eta, gamma1, gamma2, tau, omega) = get_params_sign(2);
 
     let (rho, K, tr, mut s1, mut s2, mut t0) = unpack_sk(sk, eta, k, l);
 
-    s1.ntt();
-    s2.ntt();
-    t0.ntt();
+    s1 = s1.ntt();
+    s2 = s2.ntt();
+    t0 = t0.ntt();
 
     // use SHAKE256 to generate a random polynomial A (k*l polynomials)
     let mut A = expand_A(rho, k, l);
@@ -116,13 +114,11 @@ fn sign(sk: Vec<u8>, m: Vec<u8>) -> Vec<u8> {
             y.set(i, expand_mask(rhoprime, nonce, i as i32, gamma1));
         }
         nonce += l;
-        let mut y_hat = y.copy();
-        y_hat.ntt();
+        let y_hat = y.ntt();
         let mut w = PolyVec::new(k as usize);
         for i in 0..k as usize {
-            w.vec[i] = A[i].pointwise_acc(&y_hat);
+            w.vec[i] = A[i].pointwise_acc(&y_hat).intt();
         }
-        w.intt();
         w.caddq();
         let w1 = w.high_bits(gamma2);
         let w1_ba = pack_w1(&w1, gamma2, k);
@@ -132,13 +128,11 @@ fn sign(sk: Vec<u8>, m: Vec<u8>) -> Vec<u8> {
         reader = H.finalize_xof();
         let mut cp = [0u8; 32];
         reader.read(&mut cp);
-        let mut c = sample_in_ball(cp, tau);
-        c.ntt();
+        let c = sample_in_ball(cp, tau).ntt();
 
         //  Compute z, reject if it reveals secret
         for i in 0..l as usize {
-            z.vec[i] = c.point_wise_mul(&s1.vec[i]);
-            z.vec[i].intt();
+            z.vec[i] = c.point_wise_mul(&s1.vec[i]).intt();
             z.vec[i] = z.vec[i].add(&y.vec[i]);
         }
         if z.inf_norm() >= (gamma1 - tau * eta) {
@@ -149,8 +143,7 @@ fn sign(sk: Vec<u8>, m: Vec<u8>) -> Vec<u8> {
         let w0 = w.low_bits(gamma2);
         let mut pv0 = PolyVec::new(w0.len); // record w - cs2
         for i in 0..k as usize {
-            pv0.vec[i] = c.point_wise_mul(&s2.vec[i]);
-            pv0.vec[i].intt();
+            pv0.vec[i] = c.point_wise_mul(&s2.vec[i]).intt();
             pv0.vec[i] = w0.vec[i].sub(&pv0.vec[i]);
         }
         // let r0 = pv0.low_bits(gamma2);
@@ -161,8 +154,7 @@ fn sign(sk: Vec<u8>, m: Vec<u8>) -> Vec<u8> {
         // Compute hints for w1
         let mut pv1 = PolyVec::new(k as usize);
         for i in 0..k as usize {
-            pv1.vec[i] = c.point_wise_mul(&t0.vec[i]);
-            pv1.vec[i].intt();
+            pv1.vec[i] = c.point_wise_mul(&t0.vec[i]).intt();
         }
 
         h = make_hints_pv(pv1.add(&pv0), pv1.neg(), gamma2);
@@ -174,13 +166,13 @@ fn sign(sk: Vec<u8>, m: Vec<u8>) -> Vec<u8> {
             continue;
         }
         pass = true;
-        delta = pack_delta(cp, z, h, level, omega);
+        delta = pack_delta(&cp, &z, &h, level, omega);
     }
 
     delta
 }
 
-fn verify(delta: Vec<u8>, pk: Vec<u8>, m: Vec<u8>) -> bool {
+pub fn verify(delta: &Vec<u8>, pk: &Vec<u8>, m: &Vec<u8>) -> bool {
     let (k, l, eta, gamma1, gamma2, tau, omega) = get_params_sign(2);
     let (rho, t1_ba) = unpack_pk(pk);
 
@@ -197,19 +189,15 @@ fn verify(delta: Vec<u8>, pk: Vec<u8>, m: Vec<u8>) -> bool {
     reader = H.finalize_xof();
     let mut mu = [0u8; 64];
     reader.read(&mut mu);
-    let (cp, z, h) = unpack_delta(delta, l, k, omega);
-    let mut c = sample_in_ball(cp, tau);
-    c.ntt();
-    let mut z_hat = z.copy();
-    z_hat.ntt();
-    let mut t1 = unpack_t1(t1_ba, k);
+    let (cp, mut z, h) = unpack_delta(delta, l, k, omega);
+    let c = sample_in_ball(cp, tau).ntt();
+    let z_hat = z.ntt();
+    let mut t1 = unpack_t1(&t1_ba, k);
     t1.left_shift(d as i32);
-    t1.ntt();
+    t1 = t1.ntt();
     for i in 0..t1.len {
-        t1.vec[i] = c.point_wise_mul(&t1.vec[i]);
-        t1.vec[i] = t1.vec[i].neg();
-        t1.vec[i] = t1.vec[i].add(&(A[i].pointwise_acc(&z_hat)));
-        t1.vec[i].intt();
+        t1.vec[i] = c.point_wise_mul(&t1.vec[i]).neg();
+        t1.vec[i] = t1.vec[i].add(&(A[i].pointwise_acc(&z_hat))).intt();
     }
     t1.caddq();
     let w1 = use_hints_pv(&h, &t1, gamma2);
@@ -548,7 +536,7 @@ mod test {
         ];
 
         let security_level = 2;
-        let (pk, sk) = super::key_pair(seed, security_level);
+        let (pk, sk) = super::key_pair(&seed, security_level);
         assert_eq!(pk, pk_ref);
         assert_eq!(sk, sk_ref);
     }
@@ -560,13 +548,13 @@ mod test {
             0xd6, 0x30, 0x26, 0xdd, 0x8e, 0x35, 0xf8, 0x9d, 0xd1, 0xe2, 0xbc, 0x15, 0x1d, 0x7d,
             0x20, 0xd0, 0x97, 0x96,
         ];
-        let (_pk, sk) = super::key_pair(seed, 2);
+        let (_pk, sk) = super::key_pair(&seed, 2);
         let msg = [
             0xea, 0xcd, 0xc0, 0x82, 0x36, 0x1d, 0xe7, 0x10, 0x1b, 0x69, 0x6e, 0xe1, 0xa0, 0xa4,
             0xf3, 0x51, 0x4a, 0x65, 0xb6, 0xcf, 0xb3, 0x42, 0xb, 0xa4, 0x6a, 0x8d, 0x41, 0x10,
             0x2f, 0xdf, 0xa2, 0x47,
         ];
-        let sig = super::sign(sk, msg.to_vec());
+        let sig = super::sign(&sk, &msg.to_vec());
 
         let sig_ref: [u8; 2420] = [
             0xd0, 0xfb, 0xa5, 0x8a, 0xf9, 0xf5, 0x2f, 0x29, 0xcf, 0xc7, 0x24, 0x11, 0xcd, 0xe9,
@@ -752,13 +740,13 @@ mod test {
             0xd6, 0x30, 0x26, 0xdd, 0x8e, 0x35, 0xf8, 0x9d, 0xd1, 0xe2, 0xbc, 0x15, 0x1d, 0x7d,
             0x20, 0xd0, 0x97, 0x96,
         ];
-        let (pk, sk) = key_pair(seed, 2);
+        let (pk, sk) = key_pair(&seed, 2);
         let msg = [
             0xea, 0xcd, 0xc0, 0x82, 0x36, 0x1d, 0xe7, 0x10, 0x1b, 0x69, 0x6e, 0xe1, 0xa0, 0xa4,
             0xf3, 0x51, 0x4a, 0x65, 0xb6, 0xcf, 0xb3, 0x42, 0xb, 0xa4, 0x6a, 0x8d, 0x41, 0x10,
             0x2f, 0xdf, 0xa2, 0x47,
         ];
-        let sig = sign(sk, msg.to_vec());
-        assert!(verify(sig, pk, msg.to_vec()));
+        let sig = sign(&sk, &msg.to_vec());
+        assert!(verify(&sig, &pk, &msg.to_vec()));
     }
 }

@@ -21,7 +21,7 @@ pub mod polyvec {
         pub fn get(&self, i: usize) -> &Poly {
             &self.vec[i]
         }
-        
+
         pub fn set(&mut self, i: usize, poly: Poly) {
             self.vec[i] = poly;
         }
@@ -34,8 +34,12 @@ pub mod polyvec {
             return s
         }
 
-        pub fn sub(&mut self, i: usize, poly: &Poly) {
-            self.vec[i] = self.vec[i].sub(poly);
+        pub fn sub(&mut self, pv: &PolyVec) ->PolyVec {
+            let mut s = self.copy();
+            for i in 0..self.len {
+                s.vec[i] = s.vec[i].sub(pv.get(i));
+            }
+            return s
         }
 
         // negation
@@ -47,16 +51,20 @@ pub mod polyvec {
             n
         }
 
-        pub fn ntt(&mut self) {
+        pub fn ntt(&mut self) ->PolyVec {
+            let mut pv = PolyVec::new(self.len);
             for i in 0..self.len {
-                self.vec[i].ntt();
+                pv.vec[i] = self.vec[i].ntt();
             }
+            pv
         }
 
-        pub fn  intt(&mut self) {
+        pub fn  intt(&mut self) -> PolyVec{
+            let mut pv = PolyVec::new(self.len);
             for i in 0..self.len {
-                self.vec[i].intt();
+                pv.vec[i] = self.vec[i].intt();
             }
+            pv
         }
 
         pub fn pointwise_acc(&mut self, b: &PolyVec) -> Poly {
@@ -73,6 +81,7 @@ pub mod polyvec {
             self.vec[0];
         }
 
+        // convert to [0, q) in place]
         pub fn caddq(&mut self) {
             for i in 0..self.len {
                 self.vec[i].caddq();
@@ -158,25 +167,7 @@ pub mod polyvec {
             a.set(0, b);
             assert_eq!(a.get(0).coeffs, [0; 256]);
         }
-
-        // #[test]
-        // fn polyvec_add_test() {
-        //     let mut a = PolyVec::new(10);
-        //     let b = Poly::new();
-        //     a.set(0, b);
-        //     a.add(0, &b);
-        //     assert_eq!(a.get(0).coeffs, [0; 256]);
-        // }
-
-        #[test]
-        fn polyvec_sub_test() {
-            let mut a = PolyVec::new(10);
-            let b = Poly::new();
-            a.set(0, b);
-            a.sub(0, &b);
-            assert_eq!(a.get(0).coeffs, [0; 256]);
-        }
-
+        
         #[test]
         fn polyvec_ntt_test() {
             let mut a = PolyVec::new(10);
