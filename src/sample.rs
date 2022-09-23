@@ -84,7 +84,7 @@ pub fn error_sample(seed: [u8; 64], nonce: u8, eta: u8) -> Poly {
 
 
 pub fn expand_mask(rhoprime: [u8; 64], nonce: i32, i: i32, gamma1: i32) -> Poly {
-    let mut y = Poly::new();
+    let y: Poly;
 
     let mut H = Shake256::default();
     H.update(&rhoprime);

@@ -2,7 +2,7 @@ use std::arch::asm;
 use std::arch::x86_64::_rdtsc;
 
 pub fn cpucycles() -> u64 {
-    let mut x: u64;
+    let x: u64;
     unsafe {
         x = _rdtsc();
     }
@@ -10,7 +10,6 @@ pub fn cpucycles() -> u64 {
 }
 
 pub fn cpucycles_overhead() -> u64 {
-    let (t0, t1) = (0u64, 0u64);
     let mut overhead: u64 = u64::MAX;
     for _ in 0..1000 {
         let t0 = cpucycles();

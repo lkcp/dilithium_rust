@@ -34,14 +34,6 @@ pub mod polyvec {
             return s
         }
 
-        pub fn sub(&mut self, pv: &PolyVec) ->PolyVec {
-            let mut s = self.copy();
-            for i in 0..self.len {
-                s.vec[i] = s.vec[i].sub(pv.get(i));
-            }
-            return s
-        }
-
         // negation
         pub fn neg(&mut self) -> PolyVec {
             let mut n = self.copy();
@@ -51,7 +43,7 @@ pub mod polyvec {
             n
         }
 
-        pub fn ntt(&mut self) ->PolyVec {
+        pub fn ntt(&self) ->PolyVec {
             let mut pv = PolyVec::new(self.len);
             for i in 0..self.len {
                 pv.vec[i] = self.vec[i].ntt();
@@ -59,7 +51,7 @@ pub mod polyvec {
             pv
         }
 
-        pub fn  intt(&mut self) -> PolyVec{
+        pub fn intt(&self) -> PolyVec{
             let mut pv = PolyVec::new(self.len);
             for i in 0..self.len {
                 pv.vec[i] = self.vec[i].intt();
@@ -73,12 +65,6 @@ pub mod polyvec {
                 acc = acc.add(&self.vec[i].point_wise_mul(&b.vec[i]));
             }
             acc
-        }
-
-        pub fn pointwise_acc_invmontgomery(&mut self, b: &PolyVec) {
-            self.pointwise_acc(b);
-            let _ = self.vec[0].intt();
-            self.vec[0];
         }
 
         // convert to [0, q) in place]
@@ -165,24 +151,6 @@ pub mod polyvec {
             let mut a = PolyVec::new(10);
             let b = Poly::new();
             a.set(0, b);
-            assert_eq!(a.get(0).coeffs, [0; 256]);
-        }
-        
-        #[test]
-        fn polyvec_ntt_test() {
-            let mut a = PolyVec::new(10);
-            let b = Poly::new();
-            a.set(0, b);
-            a.ntt();
-            assert_eq!(a.get(0).coeffs, [0; 256]);
-        }
-
-        #[test]
-        fn polyvec_intt_test() {
-            let mut a = PolyVec::new(10);
-            let b = Poly::new();
-            a.set(0, b);
-            a.intt();
             assert_eq!(a.get(0).coeffs, [0; 256]);
         }
 

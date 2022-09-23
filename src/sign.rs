@@ -55,7 +55,7 @@ pub fn key_pair(seed: &[u8; 32], security_level: u8) -> (Vec<u8>, Vec<u8>) {
     let (t1, t0) = power_2_round_q(t, d);
 
     // pack pk
-    let pk = pack_pk(&t1, k as u8, &rho);
+    let pk = pack_pk(&t1, &rho);
 
     // get tr
     H = Shake256::default();
@@ -189,7 +189,7 @@ pub fn verify(delta: &Vec<u8>, pk: &Vec<u8>, m: &Vec<u8>) -> bool {
     reader = H.finalize_xof();
     let mut mu = [0u8; 64];
     reader.read(&mut mu);
-    let (cp, mut z, h) = unpack_delta(delta, l, k, omega);
+    let (cp, z, h) = unpack_delta(delta, l, k, omega);
     let c = sample_in_ball(cp, tau).ntt();
     let z_hat = z.ntt();
     let mut t1 = unpack_t1(&t1_ba, k);

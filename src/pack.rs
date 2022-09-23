@@ -6,7 +6,7 @@ use crate::polyvec::polyvec::PolyVec;
 
 // pack the polyvec t1(coeffs is 10-bits) into byte arrays
 // every 4 coeffs will be packed into 5 bytes
-pub fn pack_pk(t1: &PolyVec, k: u8, rho: &[u8; 32]) -> Vec<u8> {
+pub fn pack_pk(t1: &PolyVec, rho: &[u8; 32]) -> Vec<u8> {
     let mut pk = Vec::new();
     pk.append(&mut Vec::from(*rho));
     pk.append(&mut pack_t1(t1));
@@ -18,7 +18,7 @@ pub fn pack_pk(t1: &PolyVec, k: u8, rho: &[u8; 32]) -> Vec<u8> {
 // unpack 5 bytes into 4 coeffs, 320 bytes into 256 coeffs(1 poly), total k polys
 pub fn unpack_pk(pk: &Vec<u8>) -> ([u8; 32], Vec<u8>) {
     let rho = pk[0..32].try_into().unwrap();
-    let mut t1 = pk[32..].to_vec();
+    let t1 = pk[32..].to_vec();
 
     (rho, t1)
 }
@@ -315,7 +315,6 @@ fn unpack_t0(k: i32, ba: &Vec<u8>) -> PolyVec {
     for i in 0..k as usize {
         let mut j = 0;
         loop {
-            let mut a = [0; 8];
             t0.vec[i].coeffs[j * 8] = (ba[i as usize * 416 + j * 13] as i32)
                 | ((ba[i as usize * 416 + j * 13 + 1] as i32 & 0x1F) << 8); // 8 5
             t0.vec[i].coeffs[j * 8 + 1] = ((ba[i as usize * 416 + j * 13 + 1] as i32 >> 5) & 0x07)
@@ -614,7 +613,7 @@ pub fn unpack_delta(delta: &Vec<u8>, k: i32, l: i32, omega: i32) -> ([u8; 32], P
     let mut z = PolyVec::new(l as usize);
     let mut h = PolyVec::new(k as usize);
 
-    let mut buf = delta;
+    let buf = delta;
     cp.copy_from_slice(&buf[0..32]);
     if l == 4 {
         z = unpack_z(&buf[32..32 + 576 * 4].to_vec(), 2);
