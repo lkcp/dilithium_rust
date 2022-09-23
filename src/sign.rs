@@ -1,4 +1,4 @@
-use crate::hints::{
+use crate::rounding::{
     count_h, make_hints_pv, power_2_round_q,
     use_hints_pv,
 };

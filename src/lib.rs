@@ -4,7 +4,7 @@ pub mod params;
 mod polyvec;
 mod sample;
 pub mod sign;
-mod hints;
+mod rounding;
 mod pack;
 mod utils;
 mod forgery;
