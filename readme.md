@@ -23,6 +23,6 @@ I compared our performance with [official ref and avx implemenation](https://git
 The **sign** crate offers 3 apis:
 ```rust
 key_pair(seed: &[u8; 32], security_level: u8) -> (Vec<u8>, Vec<u8>)
-sign(sk: &Vec<u8>, m: &Vec<u8>) -> (Vec<u8>, Vec<u8>)
 sign(sk: &Vec<u8>, m: &Vec<u8>, security_level: u8) -> Vec<u8>
+verify(delta: &Vec<u8>, pk: &Vec<u8>, m: &Vec<u8>) -> bool
 ```
