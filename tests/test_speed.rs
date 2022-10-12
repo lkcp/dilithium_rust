@@ -5,6 +5,7 @@ use crate::cpucycle::{cpucycles_overhead, cpucycles};
 use rand::RngCore;
 
 const NTEST:u64 = 1000;
+const LEVEL:u8 = 2;
 
 #[test]
 pub fn test_key_gen_speed() {
@@ -23,7 +24,7 @@ pub fn test_key_gen_speed() {
     overhead = cpucycles_overhead();
     while i < NTEST as u32 {
         t0 = cpucycles();
-        let (_pk, _sk) = key_pair(&seed, 2);
+        let (_pk, _sk) = key_pair(&seed, LEVEL);
         t1 = cpucycles();
         cycles = t1 - t0 - overhead;
         if cycles < min_cycles {
@@ -59,7 +60,7 @@ pub fn test_sign_speed() {
         let mut msg = [0u8; 32];
         rng.fill_bytes(&mut msg);
         t0 = cpucycles();
-        let sig = sign(&sk, &msg.to_vec());
+        let sig = sign(&sk, &msg.to_vec(), LEVEL);
         t1 = cpucycles();
         cycles = t1 - t0 - overhead;
         if cycles < min_cycles {
@@ -94,7 +95,7 @@ pub fn test_verify_speed() {
     while i < NTEST as u32 {
         let mut msg = [0u8; 32];
         rng.fill_bytes(&mut msg);
-        let sig = sign(&sk, &msg.to_vec());
+        let sig = sign(&sk, &msg.to_vec(), LEVEL);
         t0 = cpucycles();
         let res = verify(&sig, &pk, &msg.to_vec());
         t1 = cpucycles();

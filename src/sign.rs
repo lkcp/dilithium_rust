@@ -70,8 +70,7 @@ pub fn key_pair(seed: &[u8; 32], security_level: u8) -> (Vec<u8>, Vec<u8>) {
     (pk, sk)
 }
 
-pub fn sign(sk: &Vec<u8>, m: &Vec<u8>) -> Vec<u8> {
-    const level: i32 = 2;
+pub fn sign(sk: &Vec<u8>, m: &Vec<u8>, security_level: u8) -> Vec<u8> {
     let (k, l, eta, gamma1, gamma2, tau, omega) = get_params_sign(2);
 
     let (rho, K, tr, mut s1, mut s2, mut t0) = unpack_sk(sk, eta, k, l);
@@ -166,7 +165,7 @@ pub fn sign(sk: &Vec<u8>, m: &Vec<u8>) -> Vec<u8> {
             continue;
         }
         pass = true;
-        delta = pack_delta(&cp, &z, &h, level, omega);
+        delta = pack_delta(&cp, &z, &h, security_level as i32, omega);
     }
 
     delta
@@ -554,7 +553,7 @@ mod test {
             0xf3, 0x51, 0x4a, 0x65, 0xb6, 0xcf, 0xb3, 0x42, 0xb, 0xa4, 0x6a, 0x8d, 0x41, 0x10,
             0x2f, 0xdf, 0xa2, 0x47,
         ];
-        let sig = super::sign(&sk, &msg.to_vec());
+        let sig = super::sign(&sk, &msg.to_vec(), 2);
 
         let sig_ref: [u8; 2420] = [
             0xd0, 0xfb, 0xa5, 0x8a, 0xf9, 0xf5, 0x2f, 0x29, 0xcf, 0xc7, 0x24, 0x11, 0xcd, 0xe9,
@@ -746,7 +745,7 @@ mod test {
             0xf3, 0x51, 0x4a, 0x65, 0xb6, 0xcf, 0xb3, 0x42, 0xb, 0xa4, 0x6a, 0x8d, 0x41, 0x10,
             0x2f, 0xdf, 0xa2, 0x47,
         ];
-        let sig = sign(&sk, &msg.to_vec());
+        let sig = sign(&sk, &msg.to_vec(), 2);
         assert!(verify(&sig, &pk, &msg.to_vec()));
     }
 }
