@@ -1,14 +1,14 @@
-# What't it?
+# Intro
 
-I learned to be a new Ruster recently and make some study about dilithium, so I treat it as a practice of my Rust leanring.
+I'm learning to be a new Ruster recently and making some study on dilithium, so I treat it as a practice project of my Rust leanring.
 
 **warning**: It shouldn't be applied to any realistic project.
 
 Several **tips**:
 - We use [sha3](https://docs.rs/sha3) crate as our CRH and XOF
-- We offer several test example of dilithium in our unit test
+- We offer several test examples of dilithium in our unit test
 
-# How's about its performance?
+# Performance
 I compared our performance with [official ref and avx implemenation](https://github.com/pq-crystals/dilithium) in Intel Core i5-8265U @ 8x 1.8GHz of my HUAWEI Laptop, the OS is Ubuntu20.04-WSL:
 
 
