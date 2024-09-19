@@ -5,27 +5,27 @@ use crate::polyvec::polyvec::PolyVec;
 use sha3::digest::{ExtendableOutput, Update, XofReader};
 use sha3::{Shake256, Shake128};
 
-pub fn expand_A(rho: [u8; 32], k:i32, l: i32) -> Vec<PolyVec> {
-    let mut A = Vec::new();
+pub fn expand_a(rho: [u8; 32], k:i32, l: i32) -> Vec<PolyVec> {
+    let mut a = Vec::new();
     for _i in 0..k as usize{
-        A.push(PolyVec::new(l as usize));
+        a.push(PolyVec::new(l as usize));
     }
     for i in 0..k as usize {
         for j in 0..l as usize {
-            A[i].vec[j] = crate::sample::reject_sample(rho, i as u8, j as u8);
+            a[i].vec[j] = crate::sample::reject_sample(rho, i as u8, j as u8);
         }
     }
-    A
+    a
 }
 
 
 // generate a polynomial with coefficients in Z_q
 pub fn reject_sample(seed: [u8; 32], i: u8, j: u8) -> Poly {
     let mut p = Poly::new();
-    let mut H = Shake128::default();
-    H.update(&seed);
-    H.update(&[j, i]);
-    let mut reader = H.finalize_xof();
+    let mut h = Shake128::default();
+    h.update(&seed);
+    h.update(&[j, i]);
+    let mut reader = h.finalize_xof();
     let mut buf = [0u8; 3];
     for i in 0..256 {
         loop {
@@ -46,10 +46,10 @@ pub fn reject_sample(seed: [u8; 32], i: u8, j: u8) -> Poly {
 // eta == 2: if b0 or b1 < 15 accept return eta - (b0 mod 5) eta - (b1 mod 5)
 pub fn error_sample(seed: [u8; 64], nonce: u8, eta: u8) -> Poly {
     let mut p = Poly::new();
-    let mut H = Shake256::default();
-    H.update(&seed);
-    H.update(&[nonce, 0]);
-    let mut reader = H.finalize_xof();
+    let mut h = Shake256::default();
+    h.update(&seed);
+    h.update(&[nonce, 0]);
+    let mut reader = h.finalize_xof();
     let mut buf = [0u8; 1];
     let mut i: usize = 0;
     loop {
@@ -86,10 +86,10 @@ pub fn error_sample(seed: [u8; 64], nonce: u8, eta: u8) -> Poly {
 pub fn expand_mask(rhoprime: [u8; 64], nonce: i32, i: i32, gamma1: i32) -> Poly {
     let y: Poly;
 
-    let mut H = Shake256::default();
-    H.update(&rhoprime);
-    H.update(&[(nonce+i) as u8, ((nonce+i) >> 8) as u8]);
-    let mut reader = H.finalize_xof();
+    let mut h = Shake256::default();
+    h.update(&rhoprime);
+    h.update(&[(nonce+i) as u8, ((nonce+i) >> 8) as u8]);
+    let mut reader = h.finalize_xof();
 
     if gamma1 == 1 << 17 {
         let mut buf = [0u8; 576];
@@ -110,9 +110,9 @@ pub fn expand_mask(rhoprime: [u8; 64], nonce: i32, i: i32, gamma1: i32) -> Poly 
 // return a poly with \tau 1/-1's and 256-\tau 0's
 pub fn sample_in_ball(cp: [u8; 32], tau: i32) -> Poly {
     let mut c = Poly::new();
-    let mut H = Shake256::default();
-    H.update(&cp);
-    let mut reader = H.finalize_xof();
+    let mut h = Shake256::default();
+    h.update(&cp);
+    let mut reader = h.finalize_xof();
     let mut buf1 = [0u8; 8];
     let mut buf2 = [0u8; 1];
     // the first 8 bytes are used to generate the \tau signs, the rest 64-\tau is discarded

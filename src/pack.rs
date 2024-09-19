@@ -1,6 +1,6 @@
 use std::vec;
 
-use crate::params::d;
+use crate::params::D;
 use crate::poly::Poly;
 use crate::polyvec::polyvec::PolyVec;
 
@@ -77,8 +77,8 @@ pub fn unpack_t1(t1_ba: &Vec<u8>, k: i32) -> PolyVec {
 
 pub fn pack_sk(
     rho: &[u8; 32],
-    K: &[u8; 32],
-    tr: &[u8; 32],
+    kp: &[u8; 32],
+    tr: &[u8; 64],
     s1: &PolyVec,
     s2: &PolyVec,
     t0: &PolyVec,
@@ -86,7 +86,7 @@ pub fn pack_sk(
 ) -> Vec<u8> {
     let mut sk = Vec::new();
     sk.append(&mut Vec::from(*rho));
-    sk.append(&mut Vec::from(*K));
+    sk.append(&mut Vec::from(*kp));
     sk.append(&mut Vec::from(*tr));
     sk.append(&mut pack_eta(eta, s1));
     sk.append(&mut pack_eta(eta, s2));
@@ -99,13 +99,13 @@ pub fn unpack_sk(
     eta: i32,
     k: i32,
     l: i32,
-) -> ([u8; 32], [u8; 32], [u8; 32], PolyVec, PolyVec, PolyVec) {
+) -> ([u8; 32], [u8; 32], [u8; 64], PolyVec, PolyVec, PolyVec) {
     let rho = sk[0..32].try_into().unwrap();
-    let K = sk[32..64].try_into().unwrap();
-    let tr = sk[64..96].try_into().unwrap();
-    let (s1, s2) = unpack_eta(eta, k, l, &sk[96..sk.len() - 416 * k as usize].to_vec());
+    let kp = sk[32..64].try_into().unwrap();
+    let tr = sk[64..128].try_into().unwrap();
+    let (s1, s2) = unpack_eta(eta, k, l, &sk[128..sk.len() - 416 * k as usize].to_vec());
     let t0 = unpack_t0(k, &sk[sk.len() - 416 * k as usize..].to_vec());
-    (rho, K, tr, s1, s2, t0)
+    (rho, kp, tr, s1, s2, t0)
 }
 
 // pack s1 and s2 into byte arrays for different eta
@@ -273,15 +273,15 @@ fn pack_t0(t0: &PolyVec) -> Vec<u8> {
         let mut j = 0;
         loop {
             let mut a = [0; 8];
-            // a = (1 << (d-1)) - t0.vec[i].coeffs[j];
-            a[0] = (1 << (d - 1)) - t0.vec[i].coeffs[j];
-            a[1] = (1 << (d - 1)) - t0.vec[i].coeffs[j + 1];
-            a[2] = (1 << (d - 1)) - t0.vec[i].coeffs[j + 2];
-            a[3] = (1 << (d - 1)) - t0.vec[i].coeffs[j + 3];
-            a[4] = (1 << (d - 1)) - t0.vec[i].coeffs[j + 4];
-            a[5] = (1 << (d - 1)) - t0.vec[i].coeffs[j + 5];
-            a[6] = (1 << (d - 1)) - t0.vec[i].coeffs[j + 6];
-            a[7] = (1 << (d - 1)) - t0.vec[i].coeffs[j + 7];
+            // a = (1 << (D-1)) - t0.vec[i].coeffs[j];
+            a[0] = (1 << (D - 1)) - t0.vec[i].coeffs[j];
+            a[1] = (1 << (D - 1)) - t0.vec[i].coeffs[j + 1];
+            a[2] = (1 << (D - 1)) - t0.vec[i].coeffs[j + 2];
+            a[3] = (1 << (D - 1)) - t0.vec[i].coeffs[j + 3];
+            a[4] = (1 << (D - 1)) - t0.vec[i].coeffs[j + 4];
+            a[5] = (1 << (D - 1)) - t0.vec[i].coeffs[j + 5];
+            a[6] = (1 << (D - 1)) - t0.vec[i].coeffs[j + 6];
+            a[7] = (1 << (D - 1)) - t0.vec[i].coeffs[j + 7];
 
             buf.push((a[0] & 0xFF) as u8); // 8
             buf.push((((a[0] >> 8) & 0x1F) | ((a[1] & 0x07) << 5)) as u8); // 5 3
@@ -336,14 +336,14 @@ fn unpack_t0(k: i32, ba: &Vec<u8>) -> PolyVec {
             t0.vec[i].coeffs[j * 8 + 7] = ((ba[i as usize * 416 + j * 13 + 11] as i32 >> 3) & 0x1F)
                 | ((ba[i as usize * 416 + j * 13 + 12] as i32 & 0xFF) << 5); // 5 8
 
-            t0.vec[i].coeffs[j * 8] = (1 << (d - 1)) - t0.vec[i].coeffs[j * 8];
-            t0.vec[i].coeffs[j * 8 + 1] = (1 << (d - 1)) - t0.vec[i].coeffs[j * 8 + 1];
-            t0.vec[i].coeffs[j * 8 + 2] = (1 << (d - 1)) - t0.vec[i].coeffs[j * 8 + 2];
-            t0.vec[i].coeffs[j * 8 + 3] = (1 << (d - 1)) - t0.vec[i].coeffs[j * 8 + 3];
-            t0.vec[i].coeffs[j * 8 + 4] = (1 << (d - 1)) - t0.vec[i].coeffs[j * 8 + 4];
-            t0.vec[i].coeffs[j * 8 + 5] = (1 << (d - 1)) - t0.vec[i].coeffs[j * 8 + 5];
-            t0.vec[i].coeffs[j * 8 + 6] = (1 << (d - 1)) - t0.vec[i].coeffs[j * 8 + 6];
-            t0.vec[i].coeffs[j * 8 + 7] = (1 << (d - 1)) - t0.vec[i].coeffs[j * 8 + 7];
+            t0.vec[i].coeffs[j * 8] = (1 << (D - 1)) - t0.vec[i].coeffs[j * 8];
+            t0.vec[i].coeffs[j * 8 + 1] = (1 << (D - 1)) - t0.vec[i].coeffs[j * 8 + 1];
+            t0.vec[i].coeffs[j * 8 + 2] = (1 << (D - 1)) - t0.vec[i].coeffs[j * 8 + 2];
+            t0.vec[i].coeffs[j * 8 + 3] = (1 << (D - 1)) - t0.vec[i].coeffs[j * 8 + 3];
+            t0.vec[i].coeffs[j * 8 + 4] = (1 << (D - 1)) - t0.vec[i].coeffs[j * 8 + 4];
+            t0.vec[i].coeffs[j * 8 + 5] = (1 << (D - 1)) - t0.vec[i].coeffs[j * 8 + 5];
+            t0.vec[i].coeffs[j * 8 + 6] = (1 << (D - 1)) - t0.vec[i].coeffs[j * 8 + 6];
+            t0.vec[i].coeffs[j * 8 + 7] = (1 << (D - 1)) - t0.vec[i].coeffs[j * 8 + 7];
 
             j += 1;
             if j * 8 == 256 {

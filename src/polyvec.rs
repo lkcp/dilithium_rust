@@ -50,14 +50,14 @@ pub mod polyvec {
             }
             pv
         }
-
-        pub fn intt(&self) -> PolyVec{
-            let mut pv = PolyVec::new(self.len);
-            for i in 0..self.len {
-                pv.vec[i] = self.vec[i].intt();
-            }
-            pv
-        }
+	
+        // pub fn intt(&self) -> PolyVec{
+        //     let mut pv = PolyVec::new(self.len);
+        //     for i in 0..self.len {
+        //         pv.vec[i] = self.vec[i].intt();
+        //     }
+        //     pv
+        // }
 
         pub fn pointwise_acc(&mut self, b: &PolyVec) -> Poly {
             let mut acc = Poly::new();
